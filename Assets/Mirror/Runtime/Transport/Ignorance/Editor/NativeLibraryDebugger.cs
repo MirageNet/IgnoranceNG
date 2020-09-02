@@ -1,16 +1,18 @@
 #if UNITY_EDITOR
-using System.Collections.Generic;
-using UnityEditor;
 
-namespace Mirror
+using UnityEditor;
+using Enet=ENet;
+
+namespace Mirror.ENet
 {
     public class NativeLibraryDebugger
     {
         [MenuItem("Ignorance Debugging/Enet Library Name")]
         public static void RevealEnetLibraryName()
         {
-            EditorUtility.DisplayDialog("Enet Library Name", $"Use this for debugging.\nYour platform expects the native Enet library to be called: {ENet.Native.nativeLibraryName}", "Got it");
+            //EditorUtility.DisplayDialog("Enet Library Name", Enet.Native.nativeLibraryName, "Got it");
         }
     }
 }
+
 #endif

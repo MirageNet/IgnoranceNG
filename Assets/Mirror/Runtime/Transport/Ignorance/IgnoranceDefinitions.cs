@@ -1,7 +1,8 @@
 using System;
 using ENet;
 
-namespace Mirror {
+namespace Mirror.ENet
+{
         // Snipped from the transport files, as this will help
         // me keep things up to date.
         [Serializable]
