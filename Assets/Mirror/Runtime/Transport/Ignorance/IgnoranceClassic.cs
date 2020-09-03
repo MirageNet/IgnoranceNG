@@ -25,6 +25,11 @@ namespace Mirror.ENet
 
         #region Unity Methods
 
+        private void LateUpdate()
+        {
+            _client?.Update();
+        }
+
         // Sanity checks.
         private void OnValidate()
         {
@@ -84,7 +89,11 @@ namespace Mirror.ENet
         {
             Config.PacketCache = new byte[Config.MaxPacketSizeInKb * 1024];
 
+            ENETInitialized = false;
+            Library.Deinitialize();
+
             _server?.Shutdown();
+            _client?.Disconnect();
         }
 
         public override Task<IConnection> ConnectAsync(Uri uri)
@@ -107,13 +116,15 @@ namespace Mirror.ENet
 
             if (Config.Channels.Length > 255)
             {
-                Debug.LogError($"Ignorance: Too many channels. Channel limit is 255, you have {Config.Channels.Length}. This would probably crash ENET. Aborting connection.");
+                Debug.LogError(
+                    $"Ignorance: Too many channels. Channel limit is 255, you have {Config.Channels.Length}. This would probably crash ENET. Aborting connection.");
                 return null;
             }
 
             if (Config.CommunicationPort < ushort.MinValue || Config.CommunicationPort > ushort.MaxValue)
             {
-                Debug.LogError($"Ignorance: Bad communication port number. You need to set it between port 0 and 65535. Aborting connection.");
+                Debug.LogError(
+                    $"Ignorance: Bad communication port number. You need to set it between port 0 and 65535. Aborting connection.");
                 return null;
             }
 
@@ -125,7 +136,7 @@ namespace Mirror.ENet
             var address = new Address();
             address.SetHost(uri.Host);
 
-            address.Port = (ushort)Config.CommunicationPort;
+            address.Port = (ushort) Config.CommunicationPort;
 
             var peer = host.Connect(address, Config.Channels.Length);
 
@@ -135,9 +146,9 @@ namespace Mirror.ENet
 
             if (Config.DebugEnabled) Debug.Log($"[DEBUGGING MODE] Ignorance: Client has been started!");
 
-            var client = new ENetConnection(peer, host, Config);
+            _client = new ENetConnection(peer, host, Config);
 
-            return Task.FromResult<IConnection>(client);
+            return Task.FromResult<IConnection>(_client);
         }
 
         public override async Task<IConnection> AcceptAsync()

@@ -20,8 +20,8 @@ namespace Mirror.ENet
 
         private Host ENETHost = new Host();
         private Address ENETAddress;
-        private Dictionary<int, Peer> ConnectionIDToPeers = new Dictionary<int, Peer>();
-        private Dictionary<Peer, int> PeersToConnectionIDs = new Dictionary<Peer, int>();
+        private Dictionary<int, ENetConnection> ConnectionIDToPeers = new Dictionary<int, ENetConnection>();
+        private Dictionary<ENetConnection, int> PeersToConnectionIDs = new Dictionary<ENetConnection, int>();
         public bool ServerStarted;
         private static int NextConnectionID = 1;
 
@@ -51,12 +51,11 @@ namespace Mirror.ENet
 
             bool serverWasPolled = false;
 
-            Event networkEvent;
-
-            if (ENETHost.CheckEvents(out networkEvent) <= 0 && !serverWasPolled)
+            if (ENETHost.CheckEvents(out var networkEvent) <= 0)
             {
-                if (ENETHost.Service(0, out networkEvent) > 0)
-                    serverWasPolled = true;
+                if (ENETHost.Service(0, out networkEvent) <= 0) return null;
+
+                serverWasPolled = true;
             }
 
             if (!serverWasPolled) return null;
@@ -80,16 +79,18 @@ namespace Mirror.ENet
                         networkEvent.Peer.Timeout(Library.throttleScale, _config.CustomTimeoutBaseTicks,
                             _config.CustomTimeoutBaseTicks * _config.CustomTimeoutMultiplier);
 
+                    var client = new ENetConnection(networkEvent.Peer, ENETHost, _config);
+
                     // Map them into our dictonaries.
-                    PeersToConnectionIDs.Add(networkEvent.Peer, newConnectionID);
-                    ConnectionIDToPeers.Add(newConnectionID, networkEvent.Peer);
+                    PeersToConnectionIDs.Add(client, newConnectionID);
+                    ConnectionIDToPeers.Add(newConnectionID, client);
 
                     NextConnectionID++;
 
-                    break;
+                    return client;
             }
 
-            return await Task.FromResult(new ENetConnection(networkEvent.Peer, ENETHost, _config));
+            return null;
         }
 
         public void Shutdown()

@@ -11,7 +11,8 @@ namespace Mirror.ENet
     [Serializable]
     public class Configuration
     {
-        [Header("Channel Definitions")] public IgnoranceChannelTypes[] Channels;
+        [Header("Channel Definitions")] 
+        public IgnoranceChannelTypes[] Channels = new IgnoranceChannelTypes[2];
 
         public int CommunicationPort = 7777;
 

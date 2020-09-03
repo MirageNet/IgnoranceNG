@@ -1,8 +1,10 @@
 ﻿#region Statements
 
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using ENet;
 using UnityEngine;
@@ -17,26 +19,121 @@ namespace Mirror.ENet
     {
         private Peer _client;
         private readonly Configuration _config;
-        private bool _clientStarted;
         private readonly Host _clientHost;
+        private uint NextPingCalculationTime = 0, CurrentClientPing = 0;
+        private readonly ConcurrentQueue<ArraySegment<byte>> _queuedData = new ConcurrentQueue<ArraySegment<byte>>();
+        private readonly CancellationTokenSource _cancelToken = new CancellationTokenSource();
 
         public ENetConnection(Peer client, Host host, Configuration config)
         {
             _client = client;
             _config = config;
             _clientHost = host;
-
-            _clientStarted = true;
         }
 
-        #region Disconnect
+        public void Update()
+        {
+            // Is ping calculation enabled?
+            if (_config.PingCalculationInterval > 0)
+            {
+                // Time to recalculate our ping?
+                if (NextPingCalculationTime >= Library.Time)
+                {
+                    // If the peer is set, then poll it. Otherwise it might not be time to do that.
+                    if (_client.IsSet) CurrentClientPing = _client.RoundTripTime;
+                    NextPingCalculationTime = (uint)(Library.Time + (_config.PingCalculationInterval * 1000));
+                }
+            }
+        }
+
+        private void ProcessMessages()
+        {
+            bool clientWasPolled = false;
+
+            // Only process messages if the client is valid.
+            while (!clientWasPolled)
+            {
+                if (_clientHost.CheckEvents(out Event networkEvent) <= 0)
+                {
+                    if (_clientHost.Service(0, out networkEvent) <= 0) break;
+                    clientWasPolled = true;
+                }
+
+                switch (networkEvent.Type)
+                {
+                    case EventType.Connect:
+                        break;
+                    case EventType.Timeout:
+                    case EventType.Disconnect:
+                        break;
+                    case EventType.Receive:
+                        // Client recieving some data.
+                        if (_client.ID != networkEvent.Peer.ID)
+                        {
+                            // Emit a warning and clean the packet. We don't want it in memory.
+                            if (_config.DebugEnabled)
+                                Debug.LogWarning(
+                                    $"Ignorance: Unknown packet from Peer {networkEvent.Peer.ID}. Be cautious - if you get this error too many times, you're likely being attacked.");
+                            networkEvent.Packet.Dispose();
+                            break;
+                        }
+
+                        if (networkEvent.Packet.Length > _config.PacketCache.Length)
+                        {
+                            if (_config.DebugEnabled)
+                                Debug.Log(
+                                    $"Ignorance: Packet too big to fit in buffer. {networkEvent.Packet.Length} packet bytes vs {_config.PacketCache.Length} cache bytes {networkEvent.Peer.ID}.");
+                            networkEvent.Packet.Dispose();
+                        }
+                        else
+                        {
+                            // invoke on the client.
+                            try
+                            {
+                                byte[] rentedBuffer =
+                                    System.Buffers.ArrayPool<byte>.Shared.Rent(networkEvent.Packet.Length);
+
+                                networkEvent.Packet.CopyTo(rentedBuffer);
+
+                                var msg = new ArraySegment<byte>(rentedBuffer, 0, networkEvent.Packet.Length);
+
+                                _queuedData.Enqueue(msg);
+
+                                if (_config.DebugEnabled)
+                                    Debug.Log(
+                                        $"Ignorance: Queuing up data packet: {BitConverter.ToString(msg.Array)}");
+
+                                System.Buffers.ArrayPool<byte>.Shared.Return(rentedBuffer, true);
+
+                                networkEvent.Packet.Dispose();
+                            }
+                            catch (Exception e)
+                            {
+                                Debug.LogError(
+                                    $"Ignorance caught an exception while trying to copy data from the unmanaged (ENET) world to managed (Mono/IL2CPP) world. Please consider reporting this to the Ignorance developer on GitHub.\n" +
+                                    $"Exception returned was: {e.Message}\n" +
+                                    $"Debug details: {(_config.PacketCache == null ? "packet buffer was NULL" : $"{_config.PacketCache.Length} byte work buffer")}, {networkEvent.Packet.Length} byte(s) network packet length\n" +
+                                    $"Stack Trace: {e.StackTrace}");
+                                networkEvent.Packet.Dispose();
+                            }
+                        }
+
+                        break;
+                }
+            }
+        }
 
         public void Disconnect()
         {
-            if (_client.IsSet) _client.DisconnectNow(0);
-        }
+            _cancelToken.Cancel();
 
-        #endregion
+            if (_client.IsSet) _client.DisconnectNow(0);
+
+            if(_clientHost == null || !_clientHost.IsSet) return;
+
+            _clientHost.Flush();
+            _clientHost.Dispose();
+        }
 
         /// <summary>
         /// 
@@ -44,7 +141,7 @@ namespace Mirror.ENet
         /// <returns></returns>
         public EndPoint GetEndPointAddress()
         {
-            throw new NotImplementedException();
+            return new IPEndPoint(IPAddress.Parse(_config.ServerBindAddress), _client.Port);
         }
 
         /// <summary>
@@ -55,15 +152,30 @@ namespace Mirror.ENet
         /// <returns></returns>
         public Task SendAsync(ArraySegment<byte> data, int channel)
         {
+            if (!_client.IsSet || _client.State != PeerState.Connected) return null;
+
+            if (channel > _config.Channels.Length)
+            {
+                Debug.LogWarning($"Ignorance: Attempted to send data on channel {channel} when we only have {_config.Channels.Length} channels defined");
+                return null;
+            }
+
             Packet payload = default;
             payload.Create(data.Array, data.Offset, data.Count + data.Offset, (PacketFlags)_config.Channels[channel]);
 
             int returnCode = _client.SendAndReturnStatusCode((byte)channel, ref payload);
 
-            return returnCode == 0 ? Task.CompletedTask : null;
-        }
+            if (returnCode == 0)
+            {
+                if (_config.DebugEnabled) Debug.Log($"[DEBUGGING MODE] Ignorance: Outgoing packet on channel {channel} OK");
 
-        #region Receiving
+                return Task.CompletedTask;
+            }
+
+            if (_config.DebugEnabled) Debug.Log($"[DEBUGGING MODE] Ignorance: Outgoing packet on channel {channel} FAIL, code {returnCode}");
+
+            return null;
+        }
 
         /// <summary>
         /// 
@@ -72,84 +184,30 @@ namespace Mirror.ENet
         /// <returns></returns>
         public async Task<bool> ReceiveAsync(MemoryStream buffer)
         {
-            buffer.SetLength(0);
-
             try
             {
-                bool clientWasPolled = false;
-
-                // Only process messages if the client is valid.
-                while (!clientWasPolled)
+                while (_queuedData.IsEmpty)
                 {
-                    if (_clientHost.CheckEvents(out Event networkEvent) <= 0)
-                    {
-                        if (_clientHost.Service(0, out networkEvent) <= 0) await Task.Delay(1);
-                        clientWasPolled = true;
-                    }
+                    ProcessMessages();
 
-                    switch (networkEvent.Type)
-                    {
-                        case EventType.Connect:
-                            // Client connected.
-                            break;
-                        case EventType.Timeout:
-                        case EventType.Disconnect:
-                            // Client disconnected.
-                            Disconnect();
-                            break;
-                        case EventType.Receive:
-                            // Client recieving some data.
-                            // Debug.Log("Data");
-                            if (networkEvent.Packet.Length > _config.PacketCache.Length)
-                            {
-                                if (_config.DebugEnabled)
-                                    Debug.Log(
-                                        $"Ignorance: Packet too big to fit in buffer. {networkEvent.Packet.Length} packet bytes vs {_config.PacketCache.Length} cache bytes {networkEvent.Peer.ID}.");
-                                networkEvent.Packet.Dispose();
-                            }
-                            else
-                            {
-                                // invoke on the client.
-                                try
-                                {
-                                    byte[] rentedBuffer =
-                                        System.Buffers.ArrayPool<byte>.Shared.Rent(networkEvent.Packet.Length);
-                                    networkEvent.Packet.CopyTo(rentedBuffer);
-
-                                    await buffer.WriteAsync(rentedBuffer, 0, networkEvent.Packet.Length);
-
-                                    System.Buffers.ArrayPool<byte>.Shared.Return(rentedBuffer, true);
-                                }
-                                catch (Exception e)
-                                {
-                                    Debug.LogError(
-                                        $"Ignorance caught an exception while trying to copy data from the unmanaged (ENET) world to managed (Mono/IL2CPP) world. Please consider reporting this to the Ignorance developer on GitHub.\n" +
-                                        $"Exception returned was: {e.Message}\n" +
-                                        $"Debug details: {(_config.PacketCache == null ? "packet buffer was NULL" : $"{_config.PacketCache.Length} byte work buffer")}, {networkEvent.Packet.Length} byte(s) network packet length\n" +
-                                        $"Stack Trace: {e.StackTrace}");
-                                    networkEvent.Packet.Dispose();
-                                    break;
-                                }
-
-                                networkEvent.Packet.Dispose();
-
-                            }
-
-                            break;
-                    }
+                    await Task.Delay(1);
                 }
+
+                if (_cancelToken.IsCancellationRequested) return false;
+
+                _queuedData.TryDequeue(out var data);
+
+                buffer.SetLength(0);
+
+                await buffer.WriteAsync(data.Array, 0, data.Count);
+
+                return true;
             }
-            catch (ObjectDisposedException)
+            catch (Exception ex)
             {
                 return false;
             }
-
-            return false;
         }
-
-        #endregion
-
-        #region Sending
 
         /// <summary>
         /// 
@@ -158,14 +216,22 @@ namespace Mirror.ENet
         /// <returns></returns>
         public Task SendAsync(ArraySegment<byte> data)
         {
+            if (!_client.IsSet || _client.State != PeerState.Connected) return null;
+
             Packet payload = default;
             payload.Create(data.Array, data.Offset, data.Count + data.Offset, (PacketFlags)_config.Channels[0]);
 
-            int returnCode = _client.SendAndReturnStatusCode((byte)0, ref payload);
+            int returnCode = _client.SendAndReturnStatusCode(0, ref payload);
 
-            return Task.CompletedTask;
+            if (returnCode == 0)
+            {
+                if (_config.DebugEnabled) Debug.Log($"[DEBUGGING MODE] Ignorance: Outgoing packet on channel {0} OK");
+                return Task.CompletedTask;
+            }
+
+            if (_config.DebugEnabled) Debug.Log($"[DEBUGGING MODE] Ignorance: Outgoing packet on channel {0} FAIL, code {returnCode}");
+
+            return null;
         }
-
-        #endregion
     }
 }
