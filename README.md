@@ -8,7 +8,6 @@ IgnoranceNG 1.3.9
 ![GitHub last commit](https://img.shields.io/github/last-commit/dragonslaya84/Ignorance.svg) ![MIT Licensed](https://img.shields.io/badge/license-MIT-green.svg)
 
 _If you feel so inclined, I'd appreciate [**a coffee** to keep me
-caffeinated](https://ko-fi.com/coburn) *if you use this transport.*
 caffeinated](https://ko-fi.com/coburn) if you use this transport._
 
 Welcome to Ignorance, a Enet-powered Transport system for the [Mirror
@@ -16,10 +15,10 @@ Networking](https://github.com/MirrorNG/MirrorNG) project. By utilizing the trie
 and true Enet native C library, Ignorance provides reliable UDP communications 
 for your game projects where the default Telepathy TCP transport would choke.
 
-Ignorance scales up to 4096 theortical CCU with up to 255 channels per client. Channels 
+Ignorance scales up to 4096 theortical CCU with up to 255 channels per client (also known as a peer in Enet terms). Channels 
 allow you to split up network communications so you can have channels for data that are 
-mission critical as well as non-essential data. Mirror, and by extension, Unity, would choke 
-before hitting that CCU mark in the real world without optimizing your network code carefully.
+mission critical as well as non-essential data. Mirror and by extension, Unity, choke 
+before hitting that CCU mark in the real world unless one carefully optimizes their network code carefully. 
 
 Ignorance was used in a recent "Vinesauce is Hope" walking simulation demo which had multiple 
 server instances running with over 300 CCU each. [Video clips available here.](https://clips.twitch.tv/UglyColdbloodedAlfalfaAllenHuhu)
