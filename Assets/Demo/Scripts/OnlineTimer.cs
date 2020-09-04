@@ -15,14 +15,17 @@ public class OnlineTimer : NetworkBehaviour
         stopwatch = new Stopwatch();
     }
 
-    public override void OnStartClient()
+    private void OnEnable()
+    {
+        NetIdentity.Client.Authenticated.AddListener(OnStartClient);
+    }
+
+    private void OnStartClient(INetworkConnection arg0)
     {
         stopwatch.Reset();
         stopwatch.Start();
 
         Debug.Log("Stopwatch started!");
-
-       base.OnStartClient();
     }
 
     public void OnDisable()
