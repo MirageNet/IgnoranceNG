@@ -157,27 +157,6 @@ Ignorance aims to replace it with a stable and high performance transport system
 that allows you to forget about low-level networking stress and spend more time
 focusing on the gameplay.
 
-### Ignorance Classic vs Ignorance Threaded
-
-As of the latest version of Ignorance, there are two versions included in
-releases and this repository. They are as follows:
-
--   Classic: This one pumps the ENET Backend every LateUpdate tick, and if any
-    events come in, they will be fired all in that tick. This is the "tried and
-    true" transport pumping method.
-
--   Threaded: This one pumps the ENET Backend with a configurable timeout and
-    uses seperate server and client incoming and outgoing queues. Network Events
-    get placed into their respective queues and are pumped until the server or
-    client is disconnected respectively. During every LateUpdate tick, the
-    incoming queues are drained, ready for more network activity. This allows
-    maximum performance, at the expense of some stability as Unity threading can
-    be very tempermental at times.
-
-If performance is essential for you, use the **Ignorance Threaded** version of
-Ignorance. This will give you maximum networking performance. If stability is
-essential, use the **Ignorance Classic** version of Ignorance.
-
 ### Important note
 
 Since Mirror and all transports use LateUpdate to process their network code,
