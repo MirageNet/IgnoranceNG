@@ -7,8 +7,9 @@ IgnoranceNG 1.3.9
 [![GitHub issues](https://img.shields.io/github/issues/dragonslaya84/Ignorance.svg)](https://github.com/dragonslaya84/IgnoranceNG/issues)
 ![GitHub last commit](https://img.shields.io/github/last-commit/dragonslaya84/Ignorance.svg) ![MIT Licensed](https://img.shields.io/badge/license-MIT-green.svg)
 
-*If you feel so inclined, I'd appreciate* [a coffee to keep me
+_If you feel so inclined, I'd appreciate [**a coffee** to keep me
 caffeinated](https://ko-fi.com/coburn) *if you use this transport.*
+caffeinated](https://ko-fi.com/coburn) if you use this transport._
 
 Welcome to Ignorance, a Enet-powered Transport system for the [Mirror
 Networking](https://github.com/MirrorNG/MirrorNG) project. By utilizing the tried
