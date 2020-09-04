@@ -1,6 +1,6 @@
 MirrorNG version of this transport. All rights and original credit is due to Coburn
 
-Ignorance 1.3
+IgnoranceNG 1.3.9
 =============
 [![Ko-Fi](https://img.shields.io/badge/Donate-Ko--Fi-red)](https://ko-fi.com/coburn) 
 [![PayPal](https://img.shields.io/badge/Donate-PayPal-blue)](https://paypal.me/coburn64) 
