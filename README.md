@@ -11,7 +11,7 @@ IgnoranceNG 1.3.9
 caffeinated](https://ko-fi.com/coburn) *if you use this transport.*
 
 Welcome to Ignorance, a Enet-powered Transport system for the [Mirror
-Networking](https://github.com/vis2k/Mirror) project. By utilizing the tried
+Networking](https://github.com/MirrorNG/MirrorNG) project. By utilizing the tried
 and true Enet native C library, Ignorance provides reliable UDP communications 
 for your game projects where the default Telepathy TCP transport would choke.
 
@@ -105,7 +105,7 @@ Compatiblity
 Dependencies
 ------------
 
--   [Mirror Networking](https://github.com/vis2k/Mirror)
+-   [Mirror Networking](https://github.com/MirrorNG/MirrorNG)
 
 -   [ENet-CSharp](https://github.com/SoftwareGuy/ENet-CSharp) (custom fork, NOT
     compatible with upstream)
@@ -174,7 +174,7 @@ having to deal with this design issue.
 ### I have a bug!
 
 [Check the current open bug reports and/or report a new one
-here](https://github.com/dragonslaya84/Ignorance/issues). I strongly also recommend you
+here](https://github.com/dragonslaya84/IgnoranceNG/issues). I strongly also recommend you
 be present in the [Mirror Discord](https://discord.gg/N9QVxbM) so I can ask for further info and/or you can test
 fixes for your bug reports. Trolls are not welcome.
 
