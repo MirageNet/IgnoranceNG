@@ -61,26 +61,27 @@ Compatiblity
 
 ### Console
 
--   Nintendo Switch: Manual compile required - [see this document from the ENet-CSharp
+-   **Nintendo Switch**
+
+-   Manual compile of Enet native binaries required, [see this document from the ENet-CSharp
     repository.](https://github.com/SoftwareGuy/ENet-CSharp/blob/master/BUILD-FOR-SWITCH.txt)
 
--   Xbox One
+-   **Xbox One**
 
     -   UWP: Tested and confirmed working for **LAN Client only**. LAN Host doesn't work.
 
     -   Native: Possibly, however I don’t have development kit or license to
         test.
 
--   PlayStation
+-   **PlayStation**
 
-    -   Vita: Possibly. Would require me having access to the Vita SDK and C compiler.
+    -    Vita: Dead platform.
 
-    -   PS4: Falls into the same boat as Vita (above)
-
-    -   Both systems will probably require some patches in ENET to commodate the OS
-        differences that Vita/PS4 have (as they are \*BSD based).
+    -   PS4: Likely would require custom version of Enet due to the console using a BSD-based OS.
 
 ### Mobile
+
+-   **Android**
 
 -   Android 4.4 "KitKat" onwards.
 
@@ -89,7 +90,7 @@ Compatiblity
     -   x86_64 Blobs are not included since Unity 2018.4 LTS does not support
         that platform yet.
 
--   Apple iOS
+-   **Apple iOS**
 
     -   System version 8.0 minimum
 
@@ -101,19 +102,16 @@ Compatiblity
 Dependencies
 ------------
 
--   [Mirror Networking](https://github.com/MirrorNG/MirrorNG)
-
 -   [ENet-CSharp](https://github.com/SoftwareGuy/ENet-CSharp) (custom fork, NOT
     compatible with upstream)
-
--   ENET Native C Library Blobs (included)
+    
+-   [Mirror Networking](https://github.com/MirrorNG/MirrorNG)
 
 Mirror Compatibility
 --------------------
 
 Please use the Mirror Asset Store releases. The master branch of Mirror can also
-be used but please beware that it's bleeding edge and massive breakage can be
-expected on a bad day.
+be used but please beware that it's bleeding edge.
 
 Installation
 ------------
@@ -125,18 +123,9 @@ How to use
 ----------
 
 As of Ignorance 1.3, I have included a pre-configured sample scene so you can
-get started easily.
+get started easily. Otherwise add the script called **Ignorance** to your NetworkManager object,
 
-**Hard mode:**
-
-- If you haven't already, make a empty GameObject with the Mirror **Network
-Manager**. 
-- It will automatically add Telepathy as the default transport. 
-- Add a **new component** and look for **Ignorance Classic** or **Ignorance Threaded**.
-- You will have Ignorance added as a transport, but it will not be activated.
-- Remove the Telepathy transport.
-- Now **drag the Ignorance component** into the **Transport** field of the **Network Manager** inspector. 
-- If all goes well, you should see `**Game Object Name (Ignorance)` in that field.
+removing any TCP-based or other UDP-based transport. Then set the script to be used in NetworkManagers' "Transport" field.
 
 FAQ (aka Please Read This First)
 --------------------------------
