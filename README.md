@@ -48,10 +48,9 @@ macOS 10.12 onwards
 
     -   Tested and confirmed working on High Sierra, Mojave, Catalina.   
 
--   Linux
+-   **Linux x64** 
 
-    -   x86_64 libraries are included, compiled on a Ubuntu 18.04 LTS instance
-        (Bionic Beaver).
+    -   x86_64 libraries are included, compiled on a GitHub autobuilder Ubuntu instance. 
 
     -   Should *just work* on various Linux distros, as long as they aren’t too
         exotic. Main testing has been done on Debian/Ubuntu/Fedora/CentOS.
