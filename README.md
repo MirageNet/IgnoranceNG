@@ -139,8 +139,8 @@ Manager**.
 - Add a **new component** and look for **Ignorance Classic** or **Ignorance Threaded**.
 - You will have Ignorance added as a transport, but it will not be activated.
 - Remove the Telepathy transport.
-- Now **drag the Ignorance (Classic/Threaded) component** into the **Transport** field of the **Network Manager** inspector. 
-- If all goes well, you should see `**Game Object Name (Ignorance Classic/Threaded)` in that field.
+- Now **drag the Ignorance component** into the **Transport** field of the **Network Manager** inspector. 
+- If all goes well, you should see `**Game Object Name (Ignorance)` in that field.
 
 FAQ (aka Please Read This First)
 --------------------------------
@@ -174,7 +174,7 @@ having to deal with this design issue.
 ### I have a bug!
 
 [Check the current open bug reports and/or report a new one
-here](https://github.com/SoftwareGuy/Ignorance/issues). I strongly also recommend you
+here](https://github.com/dragonslaya84/Ignorance/issues). I strongly also recommend you
 be present in the [Mirror Discord](https://discord.gg/N9QVxbM) so I can ask for further info and/or you can test
 fixes for your bug reports. Trolls are not welcome.
 
