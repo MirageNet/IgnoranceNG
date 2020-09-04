@@ -24,30 +24,29 @@ Ignorance was used in a recent "Vinesauce is Hope" walking simulation demo which
 server instances running with over 300 CCU each. [Video clips available here.](https://clips.twitch.tv/UglyColdbloodedAlfalfaAllenHuhu)
 
 Ignorance was originally intended to replace Unity's LLAPI Transport that ships with
-Mirror. Over it's development, it has been proven to literally wipe the floor compared 
-against Unity LLAPI. Please read the FAQ (towards the bottom of this wall of text) before using the
-Ignorance Transport.
+ Mirror, however since it uses native libraries it was deemed too risky to ship with Mirror itself. 
+Enet has been proven to be superior when compared to Unity LLAPI. Please read the FAQ (towards the bottom of this wall of text) before using the
 
 Compatiblity
 ------------
 
 ### Desktop
 
--   Windows 7 x64 onwards, **however...**
 
-    -   32bit Windows ENET Blobs are included, however they should be treated as
-        experimental. I am doing this because I get quite a lot of people in
-        countries where 32bit computers are more common than 64bit computers
-        (Russia, Brazil, etc).
 
-    -   If you have found a quirk in the 32bit blobs, you will be required to
-        build a 64bit version of your game and test to see if the quirk exists.
-        If it does, then you qualify for a bug report.
+x64 Windows editions, starting from Windows 7
 
-    -   If the quirk exists in 32bit blobs but does not exist in 64bit blobs,
-        then you can file a bug report but it’ll be lower priority.
+    As of Ignorance 1.3.8, 32bit Windows Enet native blobs are no longer included. There was not enough reasoning to include 32bit native blobs since 32bit Windows is a platform that Unity is slowly phasing out. As such, if you really need 32bit native blobs then you can use my ENet-CSharp repositories' build system on your copy of 32bit Windows, or ask for a 32bit binary blob.
 
--   macOS 10.12 onwards. El Captain and below **ARE NOT** supported.
+    In addition to the above dot point, the only real places that I know of where 32bit is still common is Russia, Brazil and some other countries.
+
+macOS 10.12 onwards
+
+    El Captain and below ARE NOT supported.
+
+    Compiled on a GitHub autobuilder Ubuntu instance.
+
+    Tested and confirmed working on High Sierra, Mojave, Catalina.
 
     -   Tested and confirmed working on High Sierra, Mojave, Catalina.   
 
