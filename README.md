@@ -32,13 +32,13 @@ Compatiblity
 
 ### Desktop
 
-**x64 Windows editions, starting from Windows 7**
+-   **x64 Windows editions, starting from Windows 7**
 
-    - As of Ignorance 1.3.8, 32bit Windows Enet native blobs are no longer included. There was not enough reasoning to include 32bit native blobs since 32bit Windows is a platform that Unity is slowly phasing out. As such, if you really need 32bit native blobs then you can use my ENet-CSharp repositories' build system on your copy of 32bit Windows, or ask for a 32bit binary blob.
+    -   As of Ignorance 1.3.8, 32bit Windows Enet native blobs are no longer included. There was not enough reasoning to iinclude 32bit native blobs since 32bit Windows is a platform that Unity is slowly phasing out. As such, if you really need 32bit native blobs then you can use my ENet-CSharp repositories' build system on your copy of 32bit Windows, or ask for a 32bit binary blob.
 
     In addition to the above dot point, the only real places that I know of where 32bit is still common is Russia, Brazil and some other countries.
 
-**macOS 10.12 onwards**
+-   **macOS 10.12 onwards**
 
     El Captain and below ARE NOT supported.
 
