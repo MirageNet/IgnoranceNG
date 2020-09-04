@@ -19,7 +19,8 @@ namespace Mirror.ENet
         }
 		
 		[Serializable]
-		public class PeerStatistics {
+		public class PeerStatistics
+        {
 			public ulong CurrentPing;
 			public ulong PacketsSent;
 			public ulong PacketsLost;

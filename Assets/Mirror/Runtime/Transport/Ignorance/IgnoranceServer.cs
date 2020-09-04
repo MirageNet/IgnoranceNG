@@ -1,11 +1,11 @@
-﻿#region Statements
+#region Statements
 
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 using ENet;
-using Event = ENet.Event;
 using UnityEngine;
+using Event = ENet.Event;
 using EventType = ENet.EventType;
 
 #endregion
@@ -18,24 +18,29 @@ namespace Mirror.ENet
 
         private readonly Configuration _config;
 
-        private Host ENETHost = new Host();
-        private Address ENETAddress;
-        private Dictionary<int, ENetConnection> ConnectionIDToPeers = new Dictionary<int, ENetConnection>();
-        private Dictionary<ENetConnection, int> PeersToConnectionIDs = new Dictionary<ENetConnection, int>();
+        private Host _enetHost = new Host();
+        private Address _enetAddress;
+        private readonly Dictionary<int, ENetConnection> _connectionIdToPeers = new Dictionary<int, ENetConnection>();
         public bool ServerStarted;
-        private static int NextConnectionID = 1;
+        private static int _nextConnectionId = 1;
 
         #endregion
 
+        /// <summary>
+        ///     Initialize constructor.
+        /// </summary>
+        /// <param name="config"></param>
         public IgnoranceServer(Configuration config)
         {
             _config = config;
         }
 
-        private bool IsValid(Host host)
-        {
-            return host != null && host.IsSet;
-        }
+        /// <summary>
+        ///     Easy way to check if our host is not null and has been set.
+        /// </summary>
+        /// <param name="host"></param>
+        /// <returns></returns>
+        private static bool IsValid(Host host) => host != null && host.IsSet;
 
         /// <summary>
         ///     Processes and accepts new incoming connections.
@@ -44,16 +49,16 @@ namespace Mirror.ENet
         public async Task<ENetConnection> AcceptConnections()
         {
             // Never attempt to process anything if the server is not valid.
-            if (!IsValid(ENETHost)) return null;
+            if (!IsValid(_enetHost)) return null;
 
             // Never attempt to process anything if the server is not active.
             if (!ServerStarted) return null;
 
             bool serverWasPolled = false;
 
-            if (ENETHost.CheckEvents(out var networkEvent) <= 0)
+            if (_enetHost.CheckEvents(out Event networkEvent) <= 0)
             {
-                if (ENETHost.Service(0, out networkEvent) <= 0) return null;
+                if (_enetHost.Service(0, out networkEvent) <= 0) return null;
 
                 serverWasPolled = true;
             }
@@ -64,7 +69,7 @@ namespace Mirror.ENet
             {
                 case EventType.Connect:
 
-                    int newConnectionID = NextConnectionID;
+                    int newConnectionId = _nextConnectionId;
 
                     // A client connected to the server. Assign a new ID to them.
                     if (_config.DebugEnabled)
@@ -72,20 +77,19 @@ namespace Mirror.ENet
                         Debug.Log(
                             $"Ignorance: New connection from {networkEvent.Peer.IP}:{networkEvent.Peer.Port}");
                         Debug.Log(
-                            $"Ignorance: Map {networkEvent.Peer.IP}:{networkEvent.Peer.Port} (ENET Peer {networkEvent.Peer.ID}) => Mirror World Connection {newConnectionID}");
+                            $"Ignorance: Map {networkEvent.Peer.IP}:{networkEvent.Peer.Port} (ENET Peer {networkEvent.Peer.ID}) => Mirror World Connection {newConnectionId}");
                     }
 
                     if (_config.CustomTimeoutLimit)
                         networkEvent.Peer.Timeout(Library.throttleScale, _config.CustomTimeoutBaseTicks,
                             _config.CustomTimeoutBaseTicks * _config.CustomTimeoutMultiplier);
 
-                    var client = new ENetConnection(networkEvent.Peer, ENETHost, _config);
+                    var client = new ENetConnection(networkEvent.Peer, _enetHost, _config);
 
-                    // Map them into our dictonaries.
-                    PeersToConnectionIDs.Add(client, newConnectionID);
-                    ConnectionIDToPeers.Add(newConnectionID, client);
+                    // Map them into our dictionaries.
+                    _connectionIdToPeers.Add(newConnectionId, client);
 
-                    NextConnectionID++;
+                    _nextConnectionId++;
 
                     return client;
             }
@@ -93,6 +97,9 @@ namespace Mirror.ENet
             return null;
         }
 
+        /// <summary>
+        ///     Shutdown the server and cleanup.
+        /// </summary>
         public void Shutdown()
         {
             if (_config.DebugEnabled)
@@ -103,19 +110,23 @@ namespace Mirror.ENet
 
             if (_config.DebugEnabled) Debug.Log("Ignorance: Cleaning up lookup dictonaries");
 
-            ConnectionIDToPeers.Clear();
-            PeersToConnectionIDs.Clear();
-
-            if (IsValid(ENETHost))
+            for (int i = 0; i < _connectionIdToPeers.Count; i++)
             {
-                ENETHost.Dispose();
+                _connectionIdToPeers[i].Disconnect();
+            }
+
+            _connectionIdToPeers.Clear();
+
+            if (IsValid(_enetHost))
+            {
+                _enetHost.Dispose();
             }
 
             ServerStarted = false;
         }
 
         /// <summary>
-        /// 
+        ///     Start up the server and initialize things
         /// </summary>
         /// <returns></returns>
         public Task Start()
@@ -129,14 +140,14 @@ namespace Mirror.ENet
                 {
                     // Looks good to us. Let's use it.
                     if (_config.DebugEnabled) Debug.Log($"Ignorance: Valid IP Address {_config.ServerBindAddress}");
-                    ENETAddress.SetIP(_config.ServerBindAddress);
+                    _enetAddress.SetIP(_config.ServerBindAddress);
                 }
                 else
                 {
                     // Might be a hostname.
                     if (_config.DebugEnabled)
                         Debug.Log("Ignorance: Doesn't look like a valid IP address, assuming it's a hostname?");
-                    ENETAddress.SetHost(_config.ServerBindAddress);
+                    _enetAddress.SetHost(_config.ServerBindAddress);
                 }
             }
             else
@@ -149,11 +160,11 @@ namespace Mirror.ENet
 #endif
             }
 
-            ENETAddress.Port = (ushort) _config.CommunicationPort;
-            if (ENETHost == null || !ENETHost.IsSet) ENETHost = new Host();
+            _enetAddress.Port = (ushort) _config.CommunicationPort;
+            if (_enetHost == null || !_enetHost.IsSet) _enetHost = new Host();
 
             // Go go go! Clear those corners!
-            ENETHost.Create(ENETAddress, _config.CustomMaxPeerLimit ? _config.CustomMaxPeers : (int) Library.maxPeers,
+            _enetHost.Create(_enetAddress, _config.CustomMaxPeerLimit ? _config.CustomMaxPeers : (int) Library.maxPeers,
                 _config.Channels.Length, 0, 0);
 
             if (_config.DebugEnabled)

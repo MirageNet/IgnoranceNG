@@ -1,4 +1,4 @@
-﻿#region Statements
+#region Statements
 
 using System;
 using UnityEngine;
@@ -8,6 +8,9 @@ using UnityEngine.Serialization;
 
 namespace Mirror.ENet
 {
+    /// <summary>
+    ///     Configuration file to be serialized into unity inspector.
+    /// </summary>
     [Serializable]
     public class Configuration
     {
