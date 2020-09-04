@@ -18,7 +18,6 @@ namespace Mirror.ENet
 
         private IgnoranceServer _server;
         private ENetConnection _client;
-        private readonly string _version = "1.3.8";
         private bool _enetInitialized;
 
         #endregion
@@ -211,7 +210,7 @@ namespace Mirror.ENet
 
             address.Port = (ushort) Config.CommunicationPort;
 
-            var peer = host.Connect(address, Config.Channels.Length);
+            Peer peer = host.Connect(address, Config.Channels.Length);
 
             if (Config.CustomTimeoutLimit)
                 peer.Timeout(Library.throttleScale, Config.CustomTimeoutBaseTicks,

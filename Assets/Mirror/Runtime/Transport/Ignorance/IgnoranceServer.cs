@@ -91,7 +91,7 @@ namespace Mirror.ENet
 
                     _nextConnectionId++;
 
-                    return client;
+                    return await Task.FromResult(client);
             }
 
             return null;
@@ -108,12 +108,7 @@ namespace Mirror.ENet
                 Debug.Log("[DEBUGGING MODE] Ignorance: Cleaning the packet cache...");
             }
 
-            if (_config.DebugEnabled) Debug.Log("Ignorance: Cleaning up lookup dictonaries");
-
-            for (int i = 0; i < _connectionIdToPeers.Count; i++)
-            {
-                _connectionIdToPeers[i].Disconnect();
-            }
+            if (_config.DebugEnabled) Debug.Log("Ignorance: Cleaning up lookup dictionaries");
 
             _connectionIdToPeers.Clear();
 

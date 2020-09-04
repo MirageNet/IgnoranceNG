@@ -25,8 +25,8 @@ namespace Mirror.ENet
         private uint _nextPingCalculationTime = 0, _currentClientPing = 0;
         private readonly ConcurrentQueue<byte[]> _queuedData = new ConcurrentQueue<byte[]>();
         private readonly CancellationTokenSource _cancelToken = new CancellationTokenSource();
-        private static Thread _processingThread;
         private byte[] _incomingData;
+        private readonly Task _queueTask;
 
         #endregion
 
@@ -42,9 +42,7 @@ namespace Mirror.ENet
             _config = config;
             _clientHost = host;
 
-            _processingThread = new Thread(ProcessMessages);
-
-            _processingThread.Start();
+            _queueTask = Task.Run(ProcessMessages);
         }
 
         /// <summary>
@@ -52,6 +50,8 @@ namespace Mirror.ENet
         /// </summary>
         public void Update()
         {
+            if(_cancelToken.IsCancellationRequested) return;
+
             // Is ping calculation enabled?
             if (_config.PingCalculationInterval > 0)
             {
@@ -121,22 +121,15 @@ namespace Mirror.ENet
                                 // invoke on the client.
                                 try
                                 {
-                                    byte[] rentedBuffer =
-                                        System.Buffers.ArrayPool<byte>.Shared.Rent(networkEvent.Packet.Length);
-
-                                    networkEvent.Packet.CopyTo(rentedBuffer);
-
                                     _incomingData = new byte[networkEvent.Packet.Length];
 
-                                    Array.Copy(rentedBuffer, _incomingData, networkEvent.Packet.Length);
+                                    networkEvent.Packet.CopyTo(_incomingData);
 
                                     _queuedData.Enqueue(_incomingData);
 
                                     if (_config.DebugEnabled)
                                         Debug.Log(
                                             $"Ignorance: Queuing up data packet: {BitConverter.ToString(_incomingData)}");
-
-                                    System.Buffers.ArrayPool<byte>.Shared.Return(rentedBuffer, true);
 
                                     networkEvent.Packet.Dispose();
                                 }
@@ -164,14 +157,14 @@ namespace Mirror.ENet
         {
             _cancelToken.Cancel();
 
-            if (_processingThread != null && _processingThread.IsAlive) _processingThread.Join();
-
             if (_client.IsSet) _client.DisconnectNow(0);
 
             if(_clientHost == null || !_clientHost.IsSet) return;
 
             _clientHost.Flush();
             _clientHost.Dispose();
+
+            _queueTask.Dispose();
         }
 
         /// <summary>
@@ -180,7 +173,9 @@ namespace Mirror.ENet
         /// <returns></returns>
         public EndPoint GetEndPointAddress()
         {
-            return new IPEndPoint(IPAddress.Parse(_config.ServerBindAddress), _client.Port);
+            return _cancelToken.IsCancellationRequested
+                ? null
+                : new IPEndPoint(IPAddress.Parse(_config.ServerBindAddress), _client.Port);
         }
 
         /// <summary>
@@ -191,7 +186,9 @@ namespace Mirror.ENet
         /// <returns></returns>
         public Task SendAsync(ArraySegment<byte> data, int channel)
         {
-            if (!_client.IsSet || _client.State != PeerState.Connected) return null;
+            if (_cancelToken.IsCancellationRequested) return null;
+
+            if (!_client.IsSet || _client.State == PeerState.Uninitialized) return null;
 
             if (channel > _config.Channels.Length)
             {
@@ -227,10 +224,10 @@ namespace Mirror.ENet
             {
                 while (_queuedData.IsEmpty)
                 {
+                    if (_cancelToken.IsCancellationRequested) return false;
+
                     await Task.Delay(1);
                 }
-
-                if (_cancelToken.IsCancellationRequested) return false;
 
                 _queuedData.TryDequeue(out byte[] data);
 
@@ -244,8 +241,14 @@ namespace Mirror.ENet
 
                 return true;
             }
-            catch (Exception ex)
+            catch (OperationCanceledException)
             {
+                // Normal operation cancellation token has fired off. Let's ignore this.
+                return false;
+            }
+            catch(Exception ex)
+            {
+                Debug.LogError($"Ignorance: During processing of incoming data something went wrong. {ex}");
                 return false;
             }
         }
@@ -257,7 +260,9 @@ namespace Mirror.ENet
         /// <returns></returns>
         public Task SendAsync(ArraySegment<byte> data)
         {
-            if (!_client.IsSet || _client.State != PeerState.Connected) return null;
+            if (_cancelToken.IsCancellationRequested) return null;
+
+            if (!_client.IsSet || _client.State == PeerState.Uninitialized) return null;
 
             Packet payload = default;
             payload.Create(data.Array, data.Offset, data.Count + data.Offset, (PacketFlags)_config.Channels[0]);
