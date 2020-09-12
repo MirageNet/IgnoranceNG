@@ -25,8 +25,6 @@ namespace Mirror.ENet
         private uint _nextPingCalculationTime = 0, _currentClientPing = 0;
         private readonly ConcurrentQueue<byte[]> _queuedData = new ConcurrentQueue<byte[]>();
         private readonly CancellationTokenSource _cancelToken = new CancellationTokenSource();
-        private byte[] _incomingData;
-        private readonly Task _queueTask;
 
         #endregion
 
@@ -42,26 +40,33 @@ namespace Mirror.ENet
             _config = config;
             _clientHost = host;
 
-            _queueTask = Task.Run(ProcessMessages);
+            _ = Task.Run(ProcessMessages, _cancelToken.Token);
+            _ = Task.Run(PingUpdate, _cancelToken.Token);
         }
 
         /// <summary>
         ///     Update ping tracking.
         /// </summary>
-        public void Update()
+        private void PingUpdate()
         {
-            if(_cancelToken.IsCancellationRequested) return;
-
-            // Is ping calculation enabled?
-            if (_config.PingCalculationInterval > 0)
+            while(!_cancelToken.IsCancellationRequested)
             {
-                // Time to recalculate our ping?
-                if (_nextPingCalculationTime >= Library.Time)
+                // Is ping calculation enabled?
+                if (_config.PingCalculationInterval <= 0)
                 {
-                    // If the peer is set, then poll it. Otherwise it might not be time to do that.
-                    if (_client.IsSet) _currentClientPing = _client.RoundTripTime;
-                    _nextPingCalculationTime = (uint)(Library.Time + (_config.PingCalculationInterval * 1000));
+                    continue;
                 }
+
+                // Time to recalculate our ping?
+                if (_nextPingCalculationTime < Library.Time)
+                {
+                    continue;
+                }
+
+                // If the peer is set, then poll it. Otherwise it might not be time to do that.
+                if (_client.IsSet) _currentClientPing = _client.RoundTripTime;
+
+                _nextPingCalculationTime = (uint)(Library.Time + (_config.PingCalculationInterval * 1000));
             }
         }
 
@@ -89,6 +94,11 @@ namespace Mirror.ENet
                             break;
                         case EventType.Timeout:
                         case EventType.Disconnect:
+
+                            if (_config.DebugEnabled) Debug.Log($"Ignorance: Dead Peer. {networkEvent.Peer.ID}.");
+
+                            Disconnect();
+
                             break;
                         case EventType.Receive:
                             // Client recieving some data.
@@ -121,17 +131,14 @@ namespace Mirror.ENet
                                 // invoke on the client.
                                 try
                                 {
-                                    _incomingData = new byte[networkEvent.Packet.Length];
+                                    byte[] rentedBuffer = System.Buffers.ArrayPool<byte>.Shared.Rent(networkEvent.Packet.Length);
+                                    networkEvent.Packet.CopyTo(rentedBuffer);
 
-                                    networkEvent.Packet.CopyTo(_incomingData);
-
-                                    _queuedData.Enqueue(_incomingData);
+                                    _queuedData.Enqueue(rentedBuffer);
 
                                     if (_config.DebugEnabled)
                                         Debug.Log(
-                                            $"Ignorance: Queuing up data packet: {BitConverter.ToString(_incomingData)}");
-
-                                    networkEvent.Packet.Dispose();
+                                            $"Ignorance: Queuing up data packet: {BitConverter.ToString(rentedBuffer)}");
                                 }
                                 catch (Exception e)
                                 {
@@ -140,8 +147,10 @@ namespace Mirror.ENet
                                         $"Exception returned was: {e.Message}\n" +
                                         $"Debug details: {(_config.PacketCache == null ? "packet buffer was NULL" : $"{_config.PacketCache.Length} byte work buffer")}, {networkEvent.Packet.Length} byte(s) network packet length\n" +
                                         $"Stack Trace: {e.StackTrace}");
-                                    networkEvent.Packet.Dispose();
                                 }
+
+
+                                networkEvent.Packet.Dispose();
                             }
 
                             break;
@@ -162,9 +171,6 @@ namespace Mirror.ENet
             if(_clientHost == null || !_clientHost.IsSet) return;
 
             _clientHost.Flush();
-            _clientHost.Dispose();
-
-            _queueTask.Dispose();
         }
 
         /// <summary>
@@ -199,7 +205,7 @@ namespace Mirror.ENet
             Packet payload = default;
             payload.Create(data.Array, data.Offset, data.Count + data.Offset, (PacketFlags)_config.Channels[channel]);
 
-            int returnCode = _client.SendAndReturnStatusCode((byte)channel, ref payload);
+            int returnCode = _client.Send((byte)channel, ref payload);
 
             if (returnCode == 0)
             {
@@ -267,7 +273,7 @@ namespace Mirror.ENet
             Packet payload = default;
             payload.Create(data.Array, data.Offset, data.Count + data.Offset, (PacketFlags)_config.Channels[0]);
 
-            int returnCode = _client.SendAndReturnStatusCode(0, ref payload);
+            int returnCode = _client.Send(0, ref payload);
 
             if (returnCode == 0)
             {

@@ -17,17 +17,11 @@ namespace Mirror.ENet
         public Configuration Config = new Configuration();
 
         private IgnoranceServer _server;
-        private ENetConnection _client;
         private bool _enetInitialized;
 
         #endregion
 
         #region Unity Methods
-
-        private void LateUpdate()
-        {
-            _client?.Update();
-        }
 
         // Sanity checks.
         private void OnValidate()
@@ -160,7 +154,6 @@ namespace Mirror.ENet
             Library.Deinitialize();
 
             _server?.Shutdown();
-            _client?.Disconnect();
         }
 
         /// <summary>
@@ -218,9 +211,7 @@ namespace Mirror.ENet
 
             if (Config.DebugEnabled) Debug.Log($"[DEBUGGING MODE] Ignorance: Client has been started!");
 
-            _client = new ENetConnection(peer, host, Config);
-
-            return Task.FromResult<IConnection>(_client);
+            return Task.FromResult<IConnection>(new ENetConnection(peer, host, Config));
         }
 
         /// <summary>

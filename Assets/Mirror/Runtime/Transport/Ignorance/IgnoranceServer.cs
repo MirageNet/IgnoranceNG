@@ -20,7 +20,6 @@ namespace Mirror.ENet
 
         private Host _enetHost = new Host();
         private Address _enetAddress;
-        private readonly Dictionary<int, ENetConnection> _connectionIdToPeers = new Dictionary<int, ENetConnection>();
         public bool ServerStarted;
         private static int _nextConnectionId = 1;
 
@@ -86,9 +85,6 @@ namespace Mirror.ENet
 
                     var client = new ENetConnection(networkEvent.Peer, _enetHost, _config);
 
-                    // Map them into our dictionaries.
-                    _connectionIdToPeers.Add(newConnectionId, client);
-
                     _nextConnectionId++;
 
                     return await Task.FromResult(client);
@@ -109,8 +105,6 @@ namespace Mirror.ENet
             }
 
             if (_config.DebugEnabled) Debug.Log("Ignorance: Cleaning up lookup dictionaries");
-
-            _connectionIdToPeers.Clear();
 
             if (IsValid(_enetHost))
             {
