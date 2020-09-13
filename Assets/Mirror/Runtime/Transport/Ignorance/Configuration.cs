@@ -27,6 +27,9 @@ namespace Mirror.ENet
         public bool CustomTimeoutLimit = false;
         public uint CustomTimeoutMultiplier = 3;
 
+        [Header("Thread Settings")]
+        public int EnetPollTimeout = 2;
+
         [Header("Debug Options")] public bool DebugEnabled = false;
 
         public int MaximumPeerCCU = 4095;
@@ -34,11 +37,10 @@ namespace Mirror.ENet
         [Header("Security")] [FormerlySerializedAs("MaxPacketSize")]
         public int MaxPacketSizeInKb = 16;
 
-        [Header("Ping Calculation")]
-        [Tooltip(
-            "This value (in seconds) controls how often the client peer ping value will be retrieved from the ENET world. Note that too low values can actually harm performance due to excessive polling. " +
-            "Keep it frequent, but not too frequent. 3 - 5 seconds should be OK. 0 to disable.")]
-        public int PingCalculationInterval = 3;
+        [Header("Statistics Calculation")]
+        [Tooltip("This value (in seconds) controls how often the client stats will be retrieved from the ENET world. Note that too low values can actually harm performance due to excessive polling. " +
+                 "Keep it frequent, but not too frequent. 3 - 5 seconds should be OK. 0 to disable.")]
+        public int StatisticsCalculationInterval = 3;
 
         public string ServerBindAddress = "127.0.0.1";
 

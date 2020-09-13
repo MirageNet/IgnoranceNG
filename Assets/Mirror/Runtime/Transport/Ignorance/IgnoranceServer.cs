@@ -21,7 +21,6 @@ namespace Mirror.ENet
         private Host _enetHost = new Host();
         private Address _enetAddress;
         public bool ServerStarted;
-        private static int _nextConnectionId = 1;
 
         #endregion
 
@@ -68,15 +67,13 @@ namespace Mirror.ENet
             {
                 case EventType.Connect:
 
-                    int newConnectionId = _nextConnectionId;
-
                     // A client connected to the server. Assign a new ID to them.
                     if (_config.DebugEnabled)
                     {
                         Debug.Log(
                             $"Ignorance: New connection from {networkEvent.Peer.IP}:{networkEvent.Peer.Port}");
                         Debug.Log(
-                            $"Ignorance: Map {networkEvent.Peer.IP}:{networkEvent.Peer.Port} (ENET Peer {networkEvent.Peer.ID}) => Mirror World Connection {newConnectionId}");
+                            $"Ignorance: Map {networkEvent.Peer.IP}:{networkEvent.Peer.Port} (ENET Peer {networkEvent.Peer.ID})");
                     }
 
                     if (_config.CustomTimeoutLimit)
@@ -84,8 +81,6 @@ namespace Mirror.ENet
                             _config.CustomTimeoutBaseTicks * _config.CustomTimeoutMultiplier);
 
                     var client = new ENetConnection(networkEvent.Peer, _enetHost, _config);
-
-                    _nextConnectionId++;
 
                     return await Task.FromResult(client);
             }
@@ -103,8 +98,6 @@ namespace Mirror.ENet
                 Debug.Log("[DEBUGGING MODE] Ignorance: ServerStop()");
                 Debug.Log("[DEBUGGING MODE] Ignorance: Cleaning the packet cache...");
             }
-
-            if (_config.DebugEnabled) Debug.Log("Ignorance: Cleaning up lookup dictionaries");
 
             if (IsValid(_enetHost))
             {
@@ -125,10 +118,12 @@ namespace Mirror.ENet
                 if (_config.DebugEnabled)
                     Debug.Log(
                         "Ignorance: Not binding to all interfaces, checking if supplied info is actually an IP address");
+
                 if (IPAddress.TryParse(_config.ServerBindAddress, out _))
                 {
                     // Looks good to us. Let's use it.
                     if (_config.DebugEnabled) Debug.Log($"Ignorance: Valid IP Address {_config.ServerBindAddress}");
+
                     _enetAddress.SetIP(_config.ServerBindAddress);
                 }
                 else
@@ -136,6 +131,7 @@ namespace Mirror.ENet
                     // Might be a hostname.
                     if (_config.DebugEnabled)
                         Debug.Log("Ignorance: Doesn't look like a valid IP address, assuming it's a hostname?");
+
                     _enetAddress.SetHost(_config.ServerBindAddress);
                 }
             }
@@ -150,6 +146,7 @@ namespace Mirror.ENet
             }
 
             _enetAddress.Port = (ushort) _config.CommunicationPort;
+
             if (_enetHost == null || !_enetHost.IsSet) _enetHost = new Host();
 
             // Go go go! Clear those corners!

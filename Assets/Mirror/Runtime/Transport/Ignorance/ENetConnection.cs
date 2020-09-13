@@ -22,9 +22,11 @@ namespace Mirror.ENet
         private Peer _client;
         private readonly Configuration _config;
         private readonly Host _clientHost;
-        private uint _nextPingCalculationTime = 0, _currentClientPing = 0;
-        private readonly ConcurrentQueue<byte[]> _queuedData = new ConcurrentQueue<byte[]>();
+        private readonly ConcurrentQueue<IgnoranceIncomingMessage> _incomingQueuedData = new ConcurrentQueue<IgnoranceIncomingMessage>();
+        private readonly ConcurrentQueue<IgnoranceOutgoingMessage> _outgoingQueuedData = new ConcurrentQueue<IgnoranceOutgoingMessage>();
         private readonly CancellationTokenSource _cancelToken = new CancellationTokenSource();
+        private static volatile PeerStatistics _statistics = new PeerStatistics();
+        private readonly int _pingUpdateInterval;
 
         #endregion
 
@@ -39,65 +41,56 @@ namespace Mirror.ENet
             _client = client;
             _config = config;
             _clientHost = host;
+            _statistics = new PeerStatistics();
+            _pingUpdateInterval = _config.StatisticsCalculationInterval;
 
             _ = Task.Run(ProcessMessages, _cancelToken.Token);
-            _ = Task.Run(PingUpdate, _cancelToken.Token);
-        }
-
-        /// <summary>
-        ///     Update ping tracking.
-        /// </summary>
-        private void PingUpdate()
-        {
-            while(!_cancelToken.IsCancellationRequested)
-            {
-                // Is ping calculation enabled?
-                if (_config.PingCalculationInterval <= 0)
-                {
-                    continue;
-                }
-
-                // Time to recalculate our ping?
-                if (_nextPingCalculationTime < Library.Time)
-                {
-                    continue;
-                }
-
-                // If the peer is set, then poll it. Otherwise it might not be time to do that.
-                if (_client.IsSet) _currentClientPing = _client.RoundTripTime;
-
-                _nextPingCalculationTime = (uint)(Library.Time + (_config.PingCalculationInterval * 1000));
-            }
         }
 
         /// <summary>
         ///     Process all incoming messages and queue them up for mirror.
         /// </summary>
-        private void ProcessMessages()
+        private async Task ProcessMessages()
         {
+            // Setup...
+            uint nextStatsUpdate = 0;
+
             // Only process messages if the client is valid.
             while (!_cancelToken.IsCancellationRequested)
             {
                 bool clientWasPolled = false;
 
+                if (Library.Time >= nextStatsUpdate)
+                {
+                    _statistics.CurrentPing = _client.RoundTripTime;
+                    _statistics.BytesReceived = _client.BytesReceived;
+                    _statistics.BytesSent = _client.BytesSent;
+
+                    _statistics.PacketsLost = _client.PacketsLost;
+                    _statistics.PacketsSent = _client.PacketsSent;
+
+                    // Library.Time is milliseconds, so we need to do some quick math.
+                    nextStatsUpdate = Library.Time + (uint)(_pingUpdateInterval * 1000);
+                }
+
                 while (!clientWasPolled)
                 {
                     if (_clientHost.CheckEvents(out Event networkEvent) <= 0)
                     {
-                        if (_clientHost.Service(0, out networkEvent) <= 0) break;
+                        if (_clientHost.Service(_config.EnetPollTimeout, out networkEvent) <= 0) break;
                         clientWasPolled = true;
                     }
 
                     switch (networkEvent.Type)
                     {
-                        case EventType.Connect:
-                            break;
                         case EventType.Timeout:
                         case EventType.Disconnect:
 
                             if (_config.DebugEnabled) Debug.Log($"Ignorance: Dead Peer. {networkEvent.Peer.ID}.");
 
                             Disconnect();
+
+                            networkEvent.Packet.Dispose();
 
                             break;
                         case EventType.Receive:
@@ -122,7 +115,7 @@ namespace Mirror.ENet
                             if (networkEvent.Packet.Length > _config.PacketCache.Length)
                             {
                                 if (_config.DebugEnabled)
-                                    Debug.Log(
+                                    Debug.LogWarning(
                                         $"Ignorance: Packet too big to fit in buffer. {networkEvent.Packet.Length} packet bytes vs {_config.PacketCache.Length} cache bytes {networkEvent.Peer.ID}.");
                                 networkEvent.Packet.Dispose();
                             }
@@ -131,14 +124,17 @@ namespace Mirror.ENet
                                 // invoke on the client.
                                 try
                                 {
-                                    byte[] rentedBuffer = System.Buffers.ArrayPool<byte>.Shared.Rent(networkEvent.Packet.Length);
-                                    networkEvent.Packet.CopyTo(rentedBuffer);
+                                    IgnoranceIncomingMessage incomingIgnoranceMessage = default;
+                                    incomingIgnoranceMessage.ChannelId = networkEvent.ChannelID;
+                                    incomingIgnoranceMessage.Data = new byte[networkEvent.Packet.Length];
 
-                                    _queuedData.Enqueue(rentedBuffer);
+                                    networkEvent.Packet.CopyTo(incomingIgnoranceMessage.Data);
+
+                                    _incomingQueuedData.Enqueue(incomingIgnoranceMessage);
 
                                     if (_config.DebugEnabled)
                                         Debug.Log(
-                                            $"Ignorance: Queuing up data packet: {BitConverter.ToString(rentedBuffer)}");
+                                            $"Ignorance: Queuing up incoming data packet: {BitConverter.ToString(incomingIgnoranceMessage.Data)}");
                                 }
                                 catch (Exception e)
                                 {
@@ -148,13 +144,33 @@ namespace Mirror.ENet
                                         $"Debug details: {(_config.PacketCache == null ? "packet buffer was NULL" : $"{_config.PacketCache.Length} byte work buffer")}, {networkEvent.Packet.Length} byte(s) network packet length\n" +
                                         $"Stack Trace: {e.StackTrace}");
                                 }
-
-
-                                networkEvent.Packet.Dispose();
                             }
 
+                            networkEvent.Packet.Dispose();
+
+                            break;
+                        default:
+                            networkEvent.Packet.Dispose();
                             break;
                     }
+                }
+
+                while (_outgoingQueuedData.TryDequeue(out IgnoranceOutgoingMessage message))
+                {
+                    int returnCode = _client.Send(message.ChannelId, ref message.Payload);
+
+                    if (returnCode == 0)
+                    {
+                        if (_config.DebugEnabled) Debug.Log($"[DEBUGGING MODE] Ignorance: Outgoing packet on channel {message.ChannelId} OK");
+
+                        await Task.Delay(1);
+
+                        continue;
+                    }
+
+                    if (_config.DebugEnabled) Debug.Log($"[DEBUGGING MODE] Ignorance: Outgoing packet on channel {message.ChannelId} FAIL, code {returnCode}");
+
+                    await Task.Delay(1);
                 }
             }
         }
@@ -165,6 +181,17 @@ namespace Mirror.ENet
         public void Disconnect()
         {
             _cancelToken.Cancel();
+
+            // Clean the queues.
+            while (_incomingQueuedData.TryDequeue(out _))
+            {
+                // do nothing
+            }
+
+            while (_outgoingQueuedData.TryDequeue(out _))
+            {
+                // do nothing
+            }
 
             if (_client.IsSet) _client.DisconnectNow(0);
 
@@ -205,18 +232,18 @@ namespace Mirror.ENet
             Packet payload = default;
             payload.Create(data.Array, data.Offset, data.Count + data.Offset, (PacketFlags)_config.Channels[channel]);
 
-            int returnCode = _client.Send((byte)channel, ref payload);
+            IgnoranceOutgoingMessage ignoranceOutgoingMessage = default;
 
-            if (returnCode == 0)
-            {
-                if (_config.DebugEnabled) Debug.Log($"[DEBUGGING MODE] Ignorance: Outgoing packet on channel {channel} OK");
+            ignoranceOutgoingMessage.ChannelId = (byte) channel;
+            ignoranceOutgoingMessage.Payload = payload;
 
-                return Task.CompletedTask;
-            }
+            _outgoingQueuedData.Enqueue(ignoranceOutgoingMessage);
 
-            if (_config.DebugEnabled) Debug.Log($"[DEBUGGING MODE] Ignorance: Outgoing packet on channel {channel} FAIL, code {returnCode}");
+            if (_config.DebugEnabled)
+                Debug.Log(
+                    $"Ignorance: Queuing up outgoing data packet: {BitConverter.ToString(data.Array)}");
 
-            return null;
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -228,31 +255,36 @@ namespace Mirror.ENet
         {
             try
             {
-                while (_queuedData.IsEmpty)
+                while (!_cancelToken.IsCancellationRequested)
                 {
-                    if (_cancelToken.IsCancellationRequested) return false;
+                    while (_incomingQueuedData.TryDequeue(out IgnoranceIncomingMessage ignoranceIncomingMessage))
+                    {
+                        buffer.SetLength(0);
+
+                        if (_config.DebugEnabled)
+                            Debug.Log(
+                                $"Ignorance: Sending incoming data to mirror: {BitConverter.ToString(ignoranceIncomingMessage.Data)}");
+
+                        await buffer.WriteAsync(ignoranceIncomingMessage.Data, 0, ignoranceIncomingMessage.Data.Length);
+
+                        return true;
+                    }
 
                     await Task.Delay(1);
                 }
 
-                _queuedData.TryDequeue(out byte[] data);
-
-                buffer.SetLength(0);
-
-                if (_config.DebugEnabled)
-                    Debug.Log(
-                        $"Ignorance: Sending data to mirror: {BitConverter.ToString(data)}");
-
-                await buffer.WriteAsync(data, 0, data.Length);
-
-                return true;
+                return false;
             }
             catch (OperationCanceledException)
             {
                 // Normal operation cancellation token has fired off. Let's ignore this.
+                if (_config.DebugEnabled)
+                    Debug.Log(
+                        $"Ignorance: Cancellation token cancelled");
+
                 return false;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Debug.LogError($"Ignorance: During processing of incoming data something went wrong. {ex}");
                 return false;
@@ -273,17 +305,18 @@ namespace Mirror.ENet
             Packet payload = default;
             payload.Create(data.Array, data.Offset, data.Count + data.Offset, (PacketFlags)_config.Channels[0]);
 
-            int returnCode = _client.Send(0, ref payload);
+            IgnoranceOutgoingMessage ignoranceOutgoingMessage = default;
 
-            if (returnCode == 0)
-            {
-                if (_config.DebugEnabled) Debug.Log($"[DEBUGGING MODE] Ignorance: Outgoing packet on channel {0} OK");
-                return Task.CompletedTask;
-            }
+            ignoranceOutgoingMessage.ChannelId = 0;
+            ignoranceOutgoingMessage.Payload = payload;
 
-            if (_config.DebugEnabled) Debug.Log($"[DEBUGGING MODE] Ignorance: Outgoing packet on channel {0} FAIL, code {returnCode}");
+            _outgoingQueuedData.Enqueue(ignoranceOutgoingMessage);
 
-            return null;
+            if (_config.DebugEnabled)
+                Debug.Log(
+                    $"Ignorance: Queuing up outgoing data packet: {BitConverter.ToString(data.Array)}");
+
+            return Task.CompletedTask;
         }
     }
 }
