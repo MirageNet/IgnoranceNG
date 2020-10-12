@@ -154,6 +154,7 @@ namespace Mirror.ENet
             Library.Deinitialize();
 
             _server?.Shutdown();
+            _server = null;
         }
 
         /// <summary>
