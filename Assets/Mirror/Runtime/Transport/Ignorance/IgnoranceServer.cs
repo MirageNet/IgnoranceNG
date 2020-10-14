@@ -1,8 +1,7 @@
 #region Statements
 
-using System.Collections.Generic;
 using System.Net;
-using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using ENet;
 using UnityEngine;
 using Event = ENet.Event;
@@ -44,7 +43,7 @@ namespace Mirror.ENet
         ///     Processes and accepts new incoming connections.
         /// </summary>
         /// <returns></returns>
-        public async Task<ENetConnection> AcceptConnections()
+        public async UniTask<ENetConnection> AcceptConnections()
         {
             // Never attempt to process anything if the server is not valid.
             if (!IsValid(_enetHost)) return null;
@@ -82,7 +81,7 @@ namespace Mirror.ENet
 
                     var client = new ENetConnection(networkEvent.Peer, _enetHost, _config);
 
-                    return await Task.FromResult(client);
+                    return await UniTask.FromResult(client);
             }
 
             return null;
@@ -111,7 +110,7 @@ namespace Mirror.ENet
         ///     Start up the server and initialize things
         /// </summary>
         /// <returns></returns>
-        public Task Start()
+        public UniTask Start()
         {
             if (!_config.ServerBindAll)
             {
@@ -159,7 +158,7 @@ namespace Mirror.ENet
 
             ServerStarted = true;
 
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
     }
 }

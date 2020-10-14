@@ -1406,6 +1406,6 @@ namespace ENet
         // Ignorance-specific Debugging
 #if UNITY_EDITOR
         public static string nativeLibraryName { get { return nativeLibrary; } }
-#endif
-    }
+#endif		
+	}
 }

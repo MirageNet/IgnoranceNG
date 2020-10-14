@@ -2,7 +2,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using ENet;
 using UnityEngine;
 
@@ -87,7 +87,7 @@ namespace Mirror.ENet
         ///     Server accepts new incoming connections.
         /// </summary>
         /// <returns>Returns back a new <see cref="ENetConnection"/> back to mirror.</returns>
-        public override async Task<IConnection> AcceptAsync()
+        public override async UniTask<IConnection> AcceptAsync()
         {
             // Never attempt process anything if we're not initialized
             if (!_enetInitialized) return null;
@@ -103,7 +103,7 @@ namespace Mirror.ENet
                         return client;
                     }
 
-                    await Task.Delay(1);
+                    await UniTask.Delay(1);
                 }
 
                 return null;
@@ -119,7 +119,7 @@ namespace Mirror.ENet
         ///     Start listening for incoming connection attempts.
         /// </summary>
         /// <returns>Returns completed if started up correctly.</returns>
-        public override Task ListenAsync()
+        public override UniTask ListenAsync()
         {
             if (!_enetInitialized)
             {
@@ -131,7 +131,7 @@ namespace Mirror.ENet
                 else
                 {
                     Debug.LogError("Ignorance failed to initialize ENET! Cannot continue.");
-                    return null;
+                    return UniTask.CompletedTask;
                 }
             }
 
@@ -162,7 +162,7 @@ namespace Mirror.ENet
         /// </summary>
         /// <param name="uri">The uri we want to connect to.</param>
         /// <returns></returns>
-        public override Task<IConnection> ConnectAsync(Uri uri)
+        public override async UniTask<IConnection> ConnectAsync(Uri uri)
         {
             if (!_enetInitialized)
             {
@@ -212,7 +212,7 @@ namespace Mirror.ENet
 
             if (Config.DebugEnabled) Debug.Log($"[DEBUGGING MODE] Ignorance: Client has been started!");
 
-            return Task.FromResult<IConnection>(new ENetConnection(peer, host, Config));
+            return new ENetConnection(peer, host, Config);
         }
 
         /// <summary>

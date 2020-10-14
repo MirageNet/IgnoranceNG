@@ -5,7 +5,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
 using System.Threading;
-using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using ENet;
 using UnityEngine;
 using Event = ENet.Event;
@@ -44,13 +44,13 @@ namespace Mirror.ENet
             _statistics = new PeerStatistics();
             _pingUpdateInterval = _config.StatisticsCalculationInterval;
 
-            _ = Task.Run(ProcessMessages, _cancelToken.Token);
+            _ = UniTask.Run(ProcessMessages, false, _cancelToken.Token);
         }
 
         /// <summary>
         ///     Process all incoming messages and queue them up for mirror.
         /// </summary>
-        private async Task ProcessMessages()
+        private async UniTask ProcessMessages()
         {
             // Setup...
             uint nextStatsUpdate = 0;
@@ -163,14 +163,14 @@ namespace Mirror.ENet
                     {
                         if (_config.DebugEnabled) Debug.Log($"[DEBUGGING MODE] Ignorance: Outgoing packet on channel {message.ChannelId} OK");
 
-                        await Task.Delay(1);
+                        await UniTask.Delay(1);
 
                         continue;
                     }
 
                     if (_config.DebugEnabled) Debug.Log($"[DEBUGGING MODE] Ignorance: Outgoing packet on channel {message.ChannelId} FAIL, code {returnCode}");
 
-                    await Task.Delay(1);
+                    await UniTask.Delay(1);
                 }
             }
         }
@@ -217,16 +217,16 @@ namespace Mirror.ENet
         /// <param name="data">The data to be sent.</param>
         /// <param name="channel">The channel to send it on.</param>
         /// <returns></returns>
-        public Task SendAsync(ArraySegment<byte> data, int channel)
+        public UniTask SendAsync(ArraySegment<byte> data, int channel)
         {
-            if (_cancelToken.IsCancellationRequested) return null;
+            if (_cancelToken.IsCancellationRequested) return UniTask.CompletedTask;
 
-            if (!_client.IsSet || _client.State == PeerState.Uninitialized) return null;
+            if (!_client.IsSet || _client.State == PeerState.Uninitialized) return UniTask.CompletedTask;
 
             if (channel > _config.Channels.Length)
             {
                 Debug.LogWarning($"Ignorance: Attempted to send data on channel {channel} when we only have {_config.Channels.Length} channels defined");
-                return null;
+                return UniTask.CompletedTask;
             }
 
             Packet payload = default;
@@ -243,7 +243,7 @@ namespace Mirror.ENet
                 Debug.Log(
                     $"Ignorance: Queuing up outgoing data packet: {BitConverter.ToString(data.Array)}");
 
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
         /// <summary>
@@ -251,7 +251,7 @@ namespace Mirror.ENet
         /// </summary>
         /// <param name="buffer">The memory stream buffer to write data to.</param>
         /// <returns></returns>
-        public async Task<bool> ReceiveAsync(MemoryStream buffer)
+        public async UniTask<bool> ReceiveAsync(MemoryStream buffer)
         {
             try
             {
@@ -270,7 +270,7 @@ namespace Mirror.ENet
                         return true;
                     }
 
-                    await Task.Delay(1);
+                    await UniTask.Delay(1);
                 }
 
                 return false;
@@ -296,11 +296,11 @@ namespace Mirror.ENet
         /// </summary>
         /// <param name="data">The data to send.</param>
         /// <returns></returns>
-        public Task SendAsync(ArraySegment<byte> data)
+        public UniTask SendAsync(ArraySegment<byte> data)
         {
-            if (_cancelToken.IsCancellationRequested) return null;
+            if (_cancelToken.IsCancellationRequested) return UniTask.CompletedTask;
 
-            if (!_client.IsSet || _client.State == PeerState.Uninitialized) return null;
+            if (!_client.IsSet || _client.State == PeerState.Uninitialized) return UniTask.CompletedTask;
 
             Packet payload = default;
             payload.Create(data.Array, data.Offset, data.Count + data.Offset, (PacketFlags)_config.Channels[0]);
@@ -316,7 +316,7 @@ namespace Mirror.ENet
                 Debug.Log(
                     $"Ignorance: Queuing up outgoing data packet: {BitConverter.ToString(data.Array)}");
 
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
     }
 }
