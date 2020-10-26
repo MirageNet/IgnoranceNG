@@ -15,7 +15,7 @@ using EventType = ENet.EventType;
 
 namespace Mirror.ENet
 {
-    public class ENetConnection : IChannelConnection
+    public class ENetConnection : IConnection
     {
         #region Fields
 
@@ -251,7 +251,7 @@ namespace Mirror.ENet
         /// </summary>
         /// <param name="buffer">The memory stream buffer to write data to.</param>
         /// <returns></returns>
-        public async UniTask<bool> ReceiveAsync(MemoryStream buffer)
+        public async UniTask<int> ReceiveAsync(MemoryStream buffer)
         {
             try
             {
@@ -267,13 +267,13 @@ namespace Mirror.ENet
 
                         await buffer.WriteAsync(ignoranceIncomingMessage.Data, 0, ignoranceIncomingMessage.Data.Length);
 
-                        return true;
+                        return ignoranceIncomingMessage.ChannelId;
                     }
 
                     await UniTask.Delay(1);
                 }
 
-                return false;
+                throw new EndOfStreamException();
             }
             catch (OperationCanceledException)
             {
@@ -282,41 +282,13 @@ namespace Mirror.ENet
                     Debug.Log(
                         $"Ignorance: Cancellation token cancelled");
 
-                return false;
+                throw new EndOfStreamException();
             }
             catch (Exception ex)
             {
                 Debug.LogError($"Ignorance: During processing of incoming data something went wrong. {ex}");
-                return false;
+                throw new EndOfStreamException();
             }
-        }
-
-        /// <summary>
-        ///     Send data on the default channel 0.
-        /// </summary>
-        /// <param name="data">The data to send.</param>
-        /// <returns></returns>
-        public UniTask SendAsync(ArraySegment<byte> data)
-        {
-            if (_cancelToken.IsCancellationRequested) return UniTask.CompletedTask;
-
-            if (!_client.IsSet || _client.State == PeerState.Uninitialized) return UniTask.CompletedTask;
-
-            Packet payload = default;
-            payload.Create(data.Array, data.Offset, data.Count + data.Offset, (PacketFlags)_config.Channels[0]);
-
-            IgnoranceOutgoingMessage ignoranceOutgoingMessage = default;
-
-            ignoranceOutgoingMessage.ChannelId = 0;
-            ignoranceOutgoingMessage.Payload = payload;
-
-            _outgoingQueuedData.Enqueue(ignoranceOutgoingMessage);
-
-            if (_config.DebugEnabled)
-                Debug.Log(
-                    $"Ignorance: Queuing up outgoing data packet: {BitConverter.ToString(data.Array)}");
-
-            return UniTask.CompletedTask;
         }
     }
 }
