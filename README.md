@@ -229,3 +229,4 @@ Credits
 ### And last but not least...
 -   [nxrighthere](https://github.com/nxrighthere): Helped debug some things in
     early versions of Ignorance, before blacklisting everyone on the Mirror team from his repos. His funeral.
+
