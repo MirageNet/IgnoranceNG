@@ -10,6 +10,6 @@
         "url": "https://github.com/MirrorNG/IgnoranceNG.git"
     },
     "dependencies": {
-        "com.mirrorng.mirrorng": "43.3.2"
+        "com.mirrorng.mirrorng": "51.0.1"
     }
 }
