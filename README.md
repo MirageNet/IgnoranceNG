@@ -113,11 +113,17 @@ Mirror Compatibility
 Please use the Mirror Asset Store releases. The master branch of Mirror can also
 be used but please beware that it's bleeding edge.
 
-Installation
-------------
+## Installation
+The preferred installation method is Unity Package manager.
 
-Download the Unity Package from Releases that is the latest one. Simply import
-the Unity Package and Unity will do the rest. Follow the instructions below.
+If you are using unity 2019.3 or later: 
+
+1) Open your project in unity
+2) Install [MirrorNG](https://github.com/MirrorNG/MirrorNG)
+3) Click on Windows -> Package Manager
+4) Click on the plus sign on the left and click on "Add package from git URL..."
+5) enter https://github.com/MirrorNG/IgnoranceNG.git?path=/Assets/Mirror/Runtime/Transport/Ignorance
+6) Unity will download and install MirrorNG Ignorance
 
 How to use
 ----------
