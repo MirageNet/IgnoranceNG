@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using ENet;
@@ -44,13 +45,13 @@ namespace Mirror.ENet
             _statistics = new PeerStatistics();
             _pingUpdateInterval = _config.StatisticsCalculationInterval;
 
-            _ = UniTask.Run(ProcessMessages, false, _cancelToken.Token);
+            UniTask.Run(ProcessMessages).Forget();
         }
 
         /// <summary>
         ///     Process all incoming messages and queue them up for mirror.
         /// </summary>
-        private async UniTask ProcessMessages()
+        private async UniTaskVoid ProcessMessages()
         {
             // Setup...
             uint nextStatsUpdate = 0;
@@ -172,6 +173,8 @@ namespace Mirror.ENet
 
                     await UniTask.Delay(1);
                 }
+
+                await UniTask.Delay(1);
             }
         }
 
@@ -284,9 +287,9 @@ namespace Mirror.ENet
 
                 throw new EndOfStreamException();
             }
-            catch (Exception ex)
+            catch (SocketException ex)
             {
-                Debug.LogError($"Ignorance: During processing of incoming data something went wrong. {ex}");
+                Debug.LogError($"Ignorance: this is normal other end could of closed connection. {ex}");
                 throw new EndOfStreamException();
             }
         }
