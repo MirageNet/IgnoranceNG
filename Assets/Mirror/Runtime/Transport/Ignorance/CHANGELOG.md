@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/MirrorNG/IgnoranceNG/compare/v1.4.0...v1.4.1) (2020-10-27)
+
+
+### Bug Fixes
+
+* missing CHANGELOG metadata ([255b31e](https://github.com/MirrorNG/IgnoranceNG/commit/255b31e716d3728c5eba18997ab34a49ea3bcb18))
+
 # [1.4.0](https://github.com/MirrorNG/IgnoranceNG/compare/v1.3.8...v1.4.0) (2020-10-27)
 
 
