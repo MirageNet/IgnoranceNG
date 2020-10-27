@@ -28,6 +28,7 @@ namespace Mirror.ENet
         private readonly CancellationTokenSource _cancelToken = new CancellationTokenSource();
         private static volatile PeerStatistics _statistics = new PeerStatistics();
         private readonly int _pingUpdateInterval;
+        private IgnoranceIncomingMessage _incomingIgnoranceMessage;
 
         #endregion
 
@@ -125,17 +126,20 @@ namespace Mirror.ENet
                                 // invoke on the client.
                                 try
                                 {
-                                    IgnoranceIncomingMessage incomingIgnoranceMessage = default;
-                                    incomingIgnoranceMessage.ChannelId = networkEvent.ChannelID;
-                                    incomingIgnoranceMessage.Data = new byte[networkEvent.Packet.Length];
+                                    _incomingIgnoranceMessage =
+                                        new IgnoranceIncomingMessage
+                                        {
+                                            ChannelId = networkEvent.ChannelID,
+                                            Data = new byte[networkEvent.Packet.Length]
+                                        };
 
-                                    networkEvent.Packet.CopyTo(incomingIgnoranceMessage.Data);
+                                    networkEvent.Packet.CopyTo(_incomingIgnoranceMessage.Data);
 
-                                    _incomingQueuedData.Enqueue(incomingIgnoranceMessage);
+                                    _incomingQueuedData.Enqueue(_incomingIgnoranceMessage);
 
                                     if (_config.DebugEnabled)
                                         Debug.Log(
-                                            $"Ignorance: Queuing up incoming data packet: {BitConverter.ToString(incomingIgnoranceMessage.Data)}");
+                                            $"Ignorance: Queuing up incoming data packet: {BitConverter.ToString(_incomingIgnoranceMessage.Data)}");
                                 }
                                 catch (Exception e)
                                 {
