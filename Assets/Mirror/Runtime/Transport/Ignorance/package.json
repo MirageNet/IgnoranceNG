@@ -4,7 +4,7 @@
     "version": "0.0.1",
     "unity": "2020.1",
     "description": "UDP transport for MirrorNG",
-    "author": "Dragon",
+    "author": "MirrorNG",
     "repository": {
         "type": "git",
         "url": "https://github.com/MirrorNG/IgnoranceNG.git"
