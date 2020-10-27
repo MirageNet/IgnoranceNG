@@ -10,6 +10,7 @@
         "url": "https://github.com/MirrorNG/IgnoranceNG.git"
     },
     "dependencies": {
+        "com.cysharp.unitask": "2.0.36",
         "com.mirrorng.mirrorng": "54.1.1"
     }
 }
