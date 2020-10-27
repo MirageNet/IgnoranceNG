@@ -1,3 +1,10 @@
+## [1.4.2](https://github.com/MirrorNG/IgnoranceNG/compare/v1.4.1...v1.4.2) (2020-10-27)
+
+
+### Bug Fixes
+
+* Clients can now connect again. Issue with not recycling incoming data properly. ([ee52648](https://github.com/MirrorNG/IgnoranceNG/commit/ee5264824ee6a000bf1e18a65d9358e71137f2d0))
+
 ## [1.4.1](https://github.com/MirrorNG/IgnoranceNG/compare/v1.4.0...v1.4.1) (2020-10-27)
 
 
