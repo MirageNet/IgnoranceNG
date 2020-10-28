@@ -1,5 +1,8 @@
 #region Statements
 
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Net;
 using Cysharp.Threading.Tasks;
 using ENet;
@@ -20,6 +23,8 @@ namespace Mirror.ENet
         private Host _enetHost = new Host();
         private Address _enetAddress;
         public bool ServerStarted;
+        internal readonly ConcurrentQueue<ENetServerConnection> IncomingConnection = new ConcurrentQueue<ENetServerConnection>();
+        private Dictionary<uint, ENetServerConnection> ConnectedClients = new Dictionary<uint, ENetServerConnection>();
 
         #endregion
 
@@ -43,48 +48,137 @@ namespace Mirror.ENet
         ///     Processes and accepts new incoming connections.
         /// </summary>
         /// <returns></returns>
-        public async UniTask<ENetConnection> AcceptConnections()
+        private async UniTaskVoid AcceptConnections()
         {
-            // Never attempt to process anything if the server is not valid.
-            if (!IsValid(_enetHost)) return null;
-
-            // Never attempt to process anything if the server is not active.
-            if (!ServerStarted) return null;
-
-            bool serverWasPolled = false;
-
-            if (_enetHost.CheckEvents(out Event networkEvent) <= 0)
+            while (ServerStarted)
             {
-                if (_enetHost.Service(0, out networkEvent) <= 0) return null;
+                // Never attempt to process anything if the server is not valid.
+                if (!IsValid(_enetHost)) continue;
 
-                serverWasPolled = true;
-            }
+                bool serverWasPolled = false;
 
-            if (!serverWasPolled) return null;
-
-            switch (networkEvent.Type)
-            {
-                case EventType.Connect:
-
-                    // A client connected to the server. Assign a new ID to them.
-                    if (_config.DebugEnabled)
+                while (!serverWasPolled)
+                {
+                    if (_enetHost.CheckEvents(out Event networkEvent) <= 0)
                     {
-                        Debug.Log(
-                            $"Ignorance: New connection from {networkEvent.Peer.IP}:{networkEvent.Peer.Port}");
-                        Debug.Log(
-                            $"Ignorance: Map {networkEvent.Peer.IP}:{networkEvent.Peer.Port} (ENET Peer {networkEvent.Peer.ID})");
+                        if (_enetHost.Service(_config.EnetPollTimeout, out networkEvent) <= 0) break;
+
+                        serverWasPolled = true;
                     }
 
-                    if (_config.CustomTimeoutLimit)
-                        networkEvent.Peer.Timeout(Library.throttleScale, _config.CustomTimeoutBaseTicks,
-                            _config.CustomTimeoutBaseTicks * _config.CustomTimeoutMultiplier);
+                    ConnectedClients.TryGetValue(networkEvent.Peer.ID, out ENetServerConnection client);
 
-                    var client = new ENetConnection(networkEvent.Peer, _enetHost, _config);
+                    switch (networkEvent.Type)
+                    {
+                        case EventType.Connect:
 
-                    return await UniTask.FromResult(client);
+                            // A client connected to the server. Assign a new ID to them.
+                            if (_config.DebugEnabled)
+                            {
+                                Debug.Log(
+                                    $"Ignorance: New connection from {networkEvent.Peer.IP}:{networkEvent.Peer.Port}");
+                                Debug.Log(
+                                    $"Ignorance: Map {networkEvent.Peer.IP}:{networkEvent.Peer.Port} (ENET Peer {networkEvent.Peer.ID})");
+                            }
+
+                            if (_config.CustomTimeoutLimit)
+                                networkEvent.Peer.Timeout(Library.throttleScale, _config.CustomTimeoutBaseTicks,
+                                    _config.CustomTimeoutBaseTicks * _config.CustomTimeoutMultiplier);
+
+                            var connection = new ENetServerConnection(networkEvent.Peer, _config);
+
+                            IncomingConnection.Enqueue(connection);
+
+                            ConnectedClients.Add(networkEvent.Peer.ID, connection);
+
+                            break;
+                        case EventType.Timeout:
+                        case EventType.Disconnect:
+
+                            if(!(client is null))
+                            {
+                                if (_config.DebugEnabled) Debug.Log($"Ignorance: Dead Peer. {networkEvent.Peer.ID}.");
+
+                                client.Disconnect();
+                            }
+                            else
+                            {
+                                if (_config.DebugEnabled)
+                                    Debug.LogWarning(
+                                        "Ignorance: Peer is already dead, received another disconnect message.");
+                            }
+
+                            networkEvent.Packet.Dispose();
+
+                            break;
+                        case EventType.Receive:
+
+                            // Client recieving some data.
+                            if (client?.Client.ID != networkEvent.Peer.ID)
+                            {
+                                // Emit a warning and clean the packet. We don't want it in memory.
+                                if (_config.DebugEnabled)
+                                    Debug.LogWarning(
+                                        $"Ignorance: Unknown packet from Peer {networkEvent.Peer.ID}. Be cautious - if you get this error too many times, you're likely being attacked.");
+                                networkEvent.Packet.Dispose();
+                                break;
+                            }
+
+                            if (!networkEvent.Packet.IsSet)
+                            {
+                                if (_config.DebugEnabled)
+                                    Debug.LogWarning("Ignorance WARNING: A incoming packet is not set correctly.");
+                                break;
+                            }
+
+                            if (networkEvent.Packet.Length > _config.PacketCache.Length)
+                            {
+                                if (_config.DebugEnabled)
+                                    Debug.LogWarning(
+                                        $"Ignorance: Packet too big to fit in buffer. {networkEvent.Packet.Length} packet bytes vs {_config.PacketCache.Length} cache bytes {networkEvent.Peer.ID}.");
+                                networkEvent.Packet.Dispose();
+                            }
+                            else
+                            {
+                                // invoke on the client.
+                                try
+                                {
+                                    var incomingIgnoranceMessage =
+                                        new IgnoranceIncomingMessage
+                                        {
+                                            ChannelId = networkEvent.ChannelID,
+                                            Data = new byte[networkEvent.Packet.Length]
+                                        };
+
+                                    networkEvent.Packet.CopyTo(incomingIgnoranceMessage.Data);
+
+                                    client.IncomingQueuedData.Enqueue(incomingIgnoranceMessage);
+
+                                    if (_config.DebugEnabled)
+                                        Debug.Log(
+                                            $"Ignorance: Queuing up incoming data packet: {BitConverter.ToString(incomingIgnoranceMessage.Data)}");
+                                }
+                                catch (Exception e)
+                                {
+                                    Debug.LogError(
+                                        $"Ignorance caught an exception while trying to copy data from the unmanaged (ENET) world to managed (Mono/IL2CPP) world. Please consider reporting this to the Ignorance developer on GitHub.\n" +
+                                        $"Exception returned was: {e.Message}\n" +
+                                        $"Debug details: {(_config.PacketCache == null ? "packet buffer was NULL" : $"{_config.PacketCache.Length} byte work buffer")}, {networkEvent.Packet.Length} byte(s) network packet length\n" +
+                                        $"Stack Trace: {e.StackTrace}");
+                                }
+                            }
+
+                            networkEvent.Packet.Dispose();
+
+                            break;
+                        default:
+                            networkEvent.Packet.Dispose();
+                            break;
+                    }
+                }
+
+                await UniTask.Delay(1);
             }
-
-            return null;
         }
 
         /// <summary>
@@ -157,6 +251,8 @@ namespace Mirror.ENet
                     "[DEBUGGING MODE] Ignorance: Server should be created now... If Ignorance immediately crashes after this line, please file a bug report on the GitHub.");
 
             ServerStarted = true;
+
+            UniTask.Run(AcceptConnections).Forget();
 
             return UniTask.CompletedTask;
         }

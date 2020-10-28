@@ -96,11 +96,12 @@ namespace Mirror.ENet
             {
                 while (_server != null && (bool)_server?.ServerStarted)
                 {
-                    ENetConnection client = await _server.AcceptConnections();
-
-                    if (client != null)
+                    while(_server.IncomingConnection.TryDequeue(out ENetServerConnection client))
                     {
-                        return client;
+                        if (client != null)
+                        {
+                            return client;
+                        }
                     }
 
                     await UniTask.Delay(1);
@@ -212,7 +213,7 @@ namespace Mirror.ENet
 
             if (Config.DebugEnabled) Debug.Log($"[DEBUGGING MODE] Ignorance: Client has been started!");
 
-            return await new UniTask<IConnection>(new ENetConnection(peer, host, Config));
+            return await new UniTask<IConnection>(new ENetClientConnection(peer, host, Config));
         }
 
         /// <summary>
