@@ -1,3 +1,10 @@
+## [1.4.4](https://github.com/MirrorNG/IgnoranceNG/compare/v1.4.3...v1.4.4) (2020-10-29)
+
+
+### Bug Fixes
+
+* Server can now handle spam loads of clients without any millisecond delay from load tester. If add 1ms delay to the tester load clients transport has 0 issues otherwise in a 100 load push test only 60~ out of 100 clients loaded in. ([bf09796](https://github.com/MirrorNG/IgnoranceNG/commit/bf09796a8d37c30fb5e6885497a4433a30c83614))
+
 ## [1.4.3](https://github.com/MirrorNG/IgnoranceNG/compare/v1.4.2...v1.4.3) (2020-10-28)
 
 
