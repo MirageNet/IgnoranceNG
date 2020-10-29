@@ -48,13 +48,10 @@ namespace Mirror.ENet
         ///     Processes and accepts new incoming connections.
         /// </summary>
         /// <returns></returns>
-        private async UniTaskVoid AcceptConnections()
+        private UniTask AcceptConnections()
         {
             while (ServerStarted)
             {
-                // Never attempt to process anything if the server is not valid.
-                if (!IsValid(_enetHost)) continue;
-
                 bool serverWasPolled = false;
 
                 while (!serverWasPolled)
@@ -177,8 +174,10 @@ namespace Mirror.ENet
                     }
                 }
 
-                await UniTask.Delay(1);
+                UniTask.Delay(10);
             }
+
+            return UniTask.CompletedTask;
         }
 
         /// <summary>

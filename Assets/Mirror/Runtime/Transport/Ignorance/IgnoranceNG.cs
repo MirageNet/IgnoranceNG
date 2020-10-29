@@ -86,7 +86,7 @@ namespace Mirror.ENet
         /// <summary>
         ///     Server accepts new incoming connections.
         /// </summary>
-        /// <returns>Returns back a new <see cref="ENetConnection"/> back to mirror.</returns>
+        /// <returns>Returns back a new <see cref="ENetServerConnection"/> back to mirror.</returns>
         public override async UniTask<IConnection> AcceptAsync()
         {
             // Never attempt process anything if we're not initialized
@@ -94,14 +94,11 @@ namespace Mirror.ENet
 
             try
             {
-                while (_server != null && (bool)_server?.ServerStarted)
+                while (_server != null && (bool) _server?.ServerStarted)
                 {
-                    while(_server.IncomingConnection.TryDequeue(out ENetServerConnection client))
+                    while (_server.IncomingConnection.TryDequeue(out ENetServerConnection client))
                     {
-                        if (client != null)
-                        {
-                            return client;
-                        }
+                        return client;
                     }
 
                     await UniTask.Delay(1);

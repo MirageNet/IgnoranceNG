@@ -1,3 +1,10 @@
+## [1.4.3](https://github.com/MirrorNG/IgnoranceNG/compare/v1.4.2...v1.4.3) (2020-10-28)
+
+
+### Bug Fixes
+
+* Restructed code to properly handle incoming connections smoother. ([756b4a7](https://github.com/MirrorNG/IgnoranceNG/commit/756b4a7a1a192f512b203427292ff2389677e61c))
+
 ## [1.4.2](https://github.com/MirrorNG/IgnoranceNG/compare/v1.4.1...v1.4.2) (2020-10-27)
 
 
