@@ -145,7 +145,7 @@ namespace Mirror.ENet
         /// <summary>
         ///     Disconnect this client.
         /// </summary>
-        public void Disconnect()
+        public virtual void Disconnect()
         {
             CancelToken.Cancel();
 

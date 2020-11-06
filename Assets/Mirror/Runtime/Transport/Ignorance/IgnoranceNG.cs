@@ -18,6 +18,7 @@ namespace Mirror.ENet
 
         private IgnoranceServer _server;
         private bool _enetInitialized;
+        private AutoResetUniTaskCompletionSource _listenCompletionSource;
 
         #endregion
 
@@ -84,59 +85,40 @@ namespace Mirror.ENet
         }
 
         /// <summary>
-        ///     Server accepts new incoming connections.
-        /// </summary>
-        /// <returns>Returns back a new <see cref="ENetServerConnection"/> back to mirror.</returns>
-        public override async UniTask<IConnection> AcceptAsync()
-        {
-            // Never attempt process anything if we're not initialized
-            if (!_enetInitialized) return null;
-
-            try
-            {
-                while (_server != null && (bool) _server?.ServerStarted)
-                {
-                    while (_server.IncomingConnection.TryDequeue(out ENetServerConnection client))
-                    {
-                        return client;
-                    }
-
-                    await UniTask.Delay(1);
-                }
-
-                return null;
-            }
-            catch (ObjectDisposedException)
-            {
-                // expected,  the server was closed
-                return null;
-            }
-        }
-
-        /// <summary>
         ///     Start listening for incoming connection attempts.
         /// </summary>
         /// <returns>Returns completed if started up correctly.</returns>
         public override UniTask ListenAsync()
         {
-            if (!_enetInitialized)
+            try
             {
-                if (InitializeEnet())
+                if (!_enetInitialized)
                 {
-                    Debug.Log("Ignorance successfully initialized ENET.");
-                    _enetInitialized = true;
+                    if (InitializeEnet())
+                    {
+                        Debug.Log("Ignorance successfully initialized ENET.");
+                        _enetInitialized = true;
+                    }
+                    else
+                    {
+                        Debug.LogError("Ignorance failed to initialize ENET! Cannot continue.");
+                        return UniTask.CompletedTask;
+                    }
                 }
-                else
-                {
-                    Debug.LogError("Ignorance failed to initialize ENET! Cannot continue.");
-                    return UniTask.CompletedTask;
-                }
+
+                _server = new IgnoranceServer(Config, this);
+
+                // start server up and listen for connections
+                _server.Start();
+
+                _listenCompletionSource = AutoResetUniTaskCompletionSource.Create();
+
+                return _listenCompletionSource.Task;
             }
-
-            _server = new IgnoranceServer(Config);
-
-            // start server up and listen for connections
-            return _server.Start();
+            catch (Exception ex)
+            {
+                return UniTask.FromException(ex);
+            }
         }
 
         #endregion
@@ -148,11 +130,14 @@ namespace Mirror.ENet
         {
             Config.PacketCache = new byte[Config.MaxPacketSizeInKb * 1024];
 
+            _listenCompletionSource?.TrySetResult();
+
             _enetInitialized = false;
-            Library.Deinitialize();
 
             _server?.Shutdown();
             _server = null;
+
+            Library.Deinitialize();
         }
 
         /// <summary>

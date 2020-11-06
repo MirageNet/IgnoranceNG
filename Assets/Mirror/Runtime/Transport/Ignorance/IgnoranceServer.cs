@@ -19,12 +19,11 @@ namespace Mirror.ENet
         #region Fields
 
         private readonly Configuration _config;
-
-        private Host _enetHost = new Host();
+        private readonly Transport _transport;
+        private Host _enetHost;
         private Address _enetAddress;
         public bool ServerStarted;
-        internal readonly ConcurrentQueue<ENetServerConnection> IncomingConnection = new ConcurrentQueue<ENetServerConnection>();
-        private Dictionary<uint, ENetServerConnection> ConnectedClients = new Dictionary<uint, ENetServerConnection>();
+        private readonly Dictionary<uint, ENetServerConnection> _connectedClients = new Dictionary<uint, ENetServerConnection>();
 
         #endregion
 
@@ -32,23 +31,18 @@ namespace Mirror.ENet
         ///     Initialize constructor.
         /// </summary>
         /// <param name="config"></param>
-        public IgnoranceServer(Configuration config)
+        public IgnoranceServer(Configuration config, Transport transport)
         {
             _config = config;
+            _transport = transport;
+            _enetHost = new Host();
         }
-
-        /// <summary>
-        ///     Easy way to check if our host is not null and has been set.
-        /// </summary>
-        /// <param name="host"></param>
-        /// <returns></returns>
-        private static bool IsValid(Host host) => host != null && host.IsSet;
 
         /// <summary>
         ///     Processes and accepts new incoming connections.
         /// </summary>
         /// <returns></returns>
-        private UniTask AcceptConnections()
+        private async UniTaskVoid AcceptConnections()
         {
             while (ServerStarted)
             {
@@ -63,7 +57,7 @@ namespace Mirror.ENet
                         serverWasPolled = true;
                     }
 
-                    ConnectedClients.TryGetValue(networkEvent.Peer.ID, out ENetServerConnection client);
+                    _connectedClients.TryGetValue(networkEvent.Peer.ID, out ENetServerConnection client);
 
                     switch (networkEvent.Type)
                     {
@@ -84,9 +78,9 @@ namespace Mirror.ENet
 
                             var connection = new ENetServerConnection(networkEvent.Peer, _config);
 
-                            IncomingConnection.Enqueue(connection);
+                            _transport.Connected.Invoke(connection);
 
-                            ConnectedClients.Add(networkEvent.Peer.ID, connection);
+                            _connectedClients.Add(networkEvent.Peer.ID, connection);
 
                             break;
                         case EventType.Timeout:
@@ -174,10 +168,8 @@ namespace Mirror.ENet
                     }
                 }
 
-                UniTask.Delay(10);
+                await UniTask.Delay(10);
             }
-
-            return UniTask.CompletedTask;
         }
 
         /// <summary>
@@ -191,19 +183,17 @@ namespace Mirror.ENet
                 Debug.Log("[DEBUGGING MODE] Ignorance: Cleaning the packet cache...");
             }
 
-            if (IsValid(_enetHost))
-            {
-                _enetHost.Dispose();
-            }
-
             ServerStarted = false;
+
+            _enetHost.Flush();
+            _enetHost.Dispose();
         }
 
         /// <summary>
         ///     Start up the server and initialize things
         /// </summary>
         /// <returns></returns>
-        public UniTask Start()
+        public void Start()
         {
             if (!_config.ServerBindAll)
             {
@@ -251,9 +241,10 @@ namespace Mirror.ENet
 
             ServerStarted = true;
 
-            UniTask.Run(AcceptConnections).Forget();
+            AcceptConnections().Forget();
 
-            return UniTask.CompletedTask;
+            // Transport has finish starting.
+            _transport.Started.Invoke();
         }
     }
 }

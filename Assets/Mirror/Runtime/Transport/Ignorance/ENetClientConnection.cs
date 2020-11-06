@@ -35,6 +35,22 @@ namespace Mirror.ENet
             _pingUpdateInterval = Config.StatisticsCalculationInterval;
         }
 
+
+        #region Overrides of Common
+
+        /// <summary>
+        ///     Disconnect this client.
+        /// </summary>
+        public override void Disconnect()
+        {
+            base.Disconnect();
+
+            _clientHost.Flush();
+            _clientHost.Dispose();
+        }
+
+        #endregion
+
         /// <summary>
         ///     Process all incoming messages and queue them up for mirror.
         /// </summary>
