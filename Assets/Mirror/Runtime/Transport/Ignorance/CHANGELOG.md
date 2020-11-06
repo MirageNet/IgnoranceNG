@@ -1,3 +1,10 @@
+## [1.4.5](https://github.com/MirrorNG/IgnoranceNG/compare/v1.4.4...v1.4.5) (2020-11-06)
+
+
+### Bug Fixes
+
+* Upgrade for breaking changes to mirrorng. ([ddf073a](https://github.com/MirrorNG/IgnoranceNG/commit/ddf073ab71e9a9a85e41b4e8d2af7017ad25023a))
+
 ## [1.4.4](https://github.com/MirrorNG/IgnoranceNG/compare/v1.4.3...v1.4.4) (2020-10-29)
 
 
