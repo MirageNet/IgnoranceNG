@@ -1,7 +1,7 @@
 {
     "name": "com.mirrorng.enet",
     "displayName": "MirrorNG Ignorance",
-    "version": "1.4.5",
+    "version": "0.0.6",
     "unity": "2020.1",
     "description": "UDP transport for MirrorNG",
     "author": "MirrorNG",
