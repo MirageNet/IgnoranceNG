@@ -91,6 +91,8 @@ namespace Mirror.ENet
                                 if (_config.DebugEnabled) Debug.Log($"Ignorance: Dead Peer. {networkEvent.Peer.ID}.");
 
                                 client.Disconnect();
+
+                                _connectedClients.Remove(networkEvent.Peer.ID);
                             }
                             else
                             {
