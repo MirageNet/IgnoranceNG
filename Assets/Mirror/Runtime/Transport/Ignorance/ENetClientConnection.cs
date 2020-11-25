@@ -77,7 +77,7 @@ namespace Mirror.ENet
                     nextStatsUpdate = Library.Time + (uint) (_pingUpdateInterval * 1000);
                 }
 
-                while (!clientWasPolled)
+                while (!clientWasPolled && !(_clientHost is null))
                 {
                     if (_clientHost.CheckEvents(out Event networkEvent) <= 0)
                     {
