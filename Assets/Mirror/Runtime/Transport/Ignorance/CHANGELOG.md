@@ -1,3 +1,10 @@
+## [0.0.7](https://github.com/MirrorNG/IgnoranceNG/compare/v0.0.6...v0.0.7) (2020-11-25)
+
+
+### Bug Fixes
+
+* Forgot to remove user from list after server received a disconnect message. ([a67946a](https://github.com/MirrorNG/IgnoranceNG/commit/a67946a9e5f512c0a56a033927128a4428515456))
+
 ## [1.4.5](https://github.com/MirrorNG/IgnoranceNG/compare/v1.4.4...v1.4.5) (2020-11-06)
 
 
