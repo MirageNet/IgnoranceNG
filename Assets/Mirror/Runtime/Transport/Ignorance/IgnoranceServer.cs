@@ -1,7 +1,6 @@
 #region Statements
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using Cysharp.Threading.Tasks;
@@ -78,9 +77,9 @@ namespace Mirror.ENet
 
                             var connection = new ENetServerConnection(networkEvent.Peer, _config);
 
-                            _transport.Connected.Invoke(connection);
-
                             _connectedClients.Add(networkEvent.Peer.ID, connection);
+
+                            _transport.Connected.Invoke(connection);
 
                             break;
                         case EventType.Timeout:

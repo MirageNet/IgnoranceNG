@@ -18,7 +18,6 @@ namespace Mirror.ENet
         private readonly Host _clientHost;
         private static volatile PeerStatistics _statistics = new PeerStatistics();
         private readonly int _pingUpdateInterval;
-        private IgnoranceIncomingMessage _incomingIgnoranceMessage;
 
         #endregion
 
@@ -128,20 +127,20 @@ namespace Mirror.ENet
                                 // invoke on the client.
                                 try
                                 {
-                                    _incomingIgnoranceMessage =
+                                    var incomingIgnoranceMessage =
                                         new IgnoranceIncomingMessage
                                         {
                                             ChannelId = networkEvent.ChannelID,
                                             Data = new byte[networkEvent.Packet.Length]
                                         };
 
-                                    networkEvent.Packet.CopyTo(_incomingIgnoranceMessage.Data);
+                                    networkEvent.Packet.CopyTo(incomingIgnoranceMessage.Data);
 
-                                    IncomingQueuedData.Enqueue(_incomingIgnoranceMessage);
+                                    IncomingQueuedData.Enqueue(incomingIgnoranceMessage);
 
                                     if (Config.DebugEnabled)
                                         Debug.Log(
-                                            $"Ignorance: Queuing up incoming data packet: {BitConverter.ToString(_incomingIgnoranceMessage.Data)}");
+                                            $"Ignorance: Queuing up incoming data packet: {BitConverter.ToString(incomingIgnoranceMessage.Data)}");
                                 }
                                 catch (Exception e)
                                 {
