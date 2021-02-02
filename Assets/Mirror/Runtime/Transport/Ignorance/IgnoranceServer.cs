@@ -22,7 +22,7 @@ namespace Mirror.ENet
         private Host _enetHost;
         private Address _enetAddress;
         public bool ServerStarted;
-        private readonly Dictionary<uint, ENetServerConnection> _connectedClients = new Dictionary<uint, ENetServerConnection>();
+        private readonly Dictionary<uint, ENetClientConnection> _connectedClients = new Dictionary<uint, ENetClientConnection>();
 
         #endregion
 
@@ -56,7 +56,7 @@ namespace Mirror.ENet
                         serverWasPolled = true;
                     }
 
-                    _connectedClients.TryGetValue(networkEvent.Peer.ID, out ENetServerConnection client);
+                    _connectedClients.TryGetValue(networkEvent.Peer.ID, out ENetClientConnection client);
 
                     switch (networkEvent.Type)
                     {
@@ -75,7 +75,7 @@ namespace Mirror.ENet
                                 networkEvent.Peer.Timeout(Library.throttleScale, _config.CustomTimeoutBaseTicks,
                                     _config.CustomTimeoutBaseTicks * _config.CustomTimeoutMultiplier);
 
-                            var connection = new ENetServerConnection(networkEvent.Peer, _config);
+                            var connection = new ENetClientConnection(networkEvent.Peer, _enetHost, _config, true);
 
                             _connectedClients.Add(networkEvent.Peer.ID, connection);
 
@@ -167,6 +167,29 @@ namespace Mirror.ENet
                             networkEvent.Packet.Dispose();
                             break;
                     }
+                    
+                    await UniTask.Delay(10);
+                }
+
+                foreach (KeyValuePair<uint, ENetClientConnection> connectedClient in _connectedClients)
+                {
+                    while (connectedClient.Value.OutgoingQueuedData.TryDequeue(out IgnoranceOutgoingMessage message))
+                    {
+                        int returnCode = connectedClient.Value.Client.Send(message.ChannelId, ref message.Payload);
+
+                        if (returnCode == 0)
+                        {
+                            if (_config.DebugEnabled)
+                                Debug.Log(
+                                    $"[DEBUGGING MODE] Ignorance: Outgoing packet on channel {message.ChannelId} OK");
+
+                            continue;
+                        }
+
+                        if (_config.DebugEnabled)
+                            Debug.Log(
+                                $"[DEBUGGING MODE] Ignorance: Outgoing packet on channel {message.ChannelId} FAIL, code {returnCode}");
+                    }
                 }
 
                 await UniTask.Delay(10);
@@ -242,7 +265,7 @@ namespace Mirror.ENet
 
             ServerStarted = true;
 
-            AcceptConnections().Forget();
+            UniTask.Run(AcceptConnections).Forget();
 
             // Transport has finish starting.
             _transport.Started.Invoke();

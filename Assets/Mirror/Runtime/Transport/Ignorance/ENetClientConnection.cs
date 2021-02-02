@@ -1,6 +1,11 @@
 #region Statements
 
 using System;
+using System.Collections.Concurrent;
+using System.IO;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using ENet;
 using UnityEngine;
@@ -11,13 +16,25 @@ using EventType = ENet.EventType;
 
 namespace Mirror.ENet
 {
-    public class ENetClientConnection : Common
+    public class ENetClientConnection : IConnection
     {
         #region Fields
 
         private readonly Host _clientHost;
         private static volatile PeerStatistics _statistics = new PeerStatistics();
         private readonly int _pingUpdateInterval;
+        private bool _serverConnection;
+
+        internal Peer Client;
+
+        internal readonly ConcurrentQueue<IgnoranceIncomingMessage> IncomingQueuedData =
+            new ConcurrentQueue<IgnoranceIncomingMessage>();
+
+        internal readonly ConcurrentQueue<IgnoranceOutgoingMessage> OutgoingQueuedData =
+            new ConcurrentQueue<IgnoranceOutgoingMessage>();
+
+        internal readonly Configuration Config;
+        internal readonly CancellationTokenSource CancelToken;
 
         #endregion
 
@@ -27,25 +44,159 @@ namespace Mirror.ENet
         /// <param name="client">The peer we are connecting with or to.</param>
         /// <param name="host">The host we are connecting with or to.</param>
         /// <param name="config">The configuration file to be used for all client connections.</param>
-        public ENetClientConnection(Peer client, Host host, Configuration config) : base(client, config)
+        /// <param name="isServer">Whether or not this class is being used for server connections.</param>
+        public ENetClientConnection(Peer client, Host host, Configuration config, bool isServer)
         {
             _clientHost = host;
             _statistics = new PeerStatistics();
-            _pingUpdateInterval = Config.StatisticsCalculationInterval;
+            _pingUpdateInterval = config.StatisticsCalculationInterval;
+
+            Config = config;
+            Client = client;
+            CancelToken = new CancellationTokenSource();
+            _serverConnection = isServer;
+
+            if (isServer) return;
+
+            UniTask.Run(ProcessMessages).Forget();
         }
 
+        #region Implementation of IConnection
 
-        #region Overrides of Common
+        /// <summary>
+        ///     Send data with channel specific settings. (NOOP atm until mirrorng links it)
+        /// </summary>
+        /// <param name="data">The data to be sent.</param>
+        /// <param name="channel">The channel to send it on.</param>
+        /// <returns></returns>
+        public UniTask SendAsync(ArraySegment<byte> data, int channel)
+        {
+            if (CancelToken.IsCancellationRequested)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            if (!Client.IsSet || Client.State == PeerState.Uninitialized)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            if (channel > Config.Channels.Length)
+            {
+                Debug.LogWarning(
+                    $"Ignorance: Attempted to send data on channel {channel} when we only have {Config.Channels.Length} channels defined");
+                return UniTask.CompletedTask;
+            }
+
+            Packet payload = default;
+            payload.Create(data.Array, data.Offset, data.Count + data.Offset, (PacketFlags)Config.Channels[channel]);
+
+            IgnoranceOutgoingMessage ignoranceOutgoingMessage = default;
+
+            ignoranceOutgoingMessage.ChannelId = (byte)channel;
+            ignoranceOutgoingMessage.Payload = payload;
+
+            OutgoingQueuedData.Enqueue(ignoranceOutgoingMessage);
+
+            if (Config.DebugEnabled)
+            {
+                Debug.Log(
+                    $"Ignorance: Queuing up outgoing data packet: {BitConverter.ToString(data.Array)}");
+            }
+
+            return UniTask.CompletedTask;
+        }
+
+        /// <summary>
+        ///     reads a message from connection
+        /// </summary>
+        /// <param name="buffer">buffer where the message will be written</param>
+        /// <returns>The channel where we got the message</returns>
+        /// <remark> throws System.IO.EndOfStreamException if the connetion has been closed</remark>
+        public async UniTask<int> ReceiveAsync(MemoryStream buffer)
+        {
+            try
+            {
+                while (!CancelToken.IsCancellationRequested)
+                {
+                    while (IncomingQueuedData.TryDequeue(out IgnoranceIncomingMessage ignoranceIncomingMessage))
+                    {
+                        buffer.SetLength(0);
+
+                        if (Config.DebugEnabled)
+                        {
+                            Debug.Log(
+                                $"Ignorance: Sending incoming data to mirror: {BitConverter.ToString(ignoranceIncomingMessage.Data)}");
+                        }
+
+                        await buffer.WriteAsync(ignoranceIncomingMessage.Data, 0, ignoranceIncomingMessage.Data.Length);
+
+                        return ignoranceIncomingMessage.ChannelId;
+                    }
+
+                    await UniTask.Delay(1);
+                }
+
+                throw new EndOfStreamException();
+            }
+            catch (OperationCanceledException)
+            {
+                // Normal operation cancellation token has fired off. Let's ignore this.
+                if (Config.DebugEnabled)
+                {
+                    Debug.Log(
+                        "Ignorance: Cancellation token cancelled");
+                }
+
+                throw new EndOfStreamException();
+            }
+            catch (SocketException ex)
+            {
+                Debug.LogError($"Ignorance: this is normal other end could of closed connection. {ex}");
+                throw new EndOfStreamException();
+            }
+        }
 
         /// <summary>
         ///     Disconnect this client.
         /// </summary>
-        public override void Disconnect()
+        public void Disconnect()
         {
-            base.Disconnect();
+            CancelToken.Cancel();
+
+            // Clean the queues.
+            while (IncomingQueuedData.TryDequeue(out _))
+            {
+                // do nothing
+            }
+
+            while (OutgoingQueuedData.TryDequeue(out _))
+            {
+                // do nothing
+            }
+
+            if (Client.IsSet)
+            {
+                Client.DisconnectNow(0);
+            }
+
+            if (_serverConnection) return;
 
             _clientHost.Flush();
             _clientHost.Dispose();
+        }
+
+        /// <summary>
+        ///     the address of endpoint we are connected to
+        ///     Note this can be IPEndPoint or a custom implementation
+        ///     of EndPoint, which depends on the transport
+        /// </summary>
+        /// <returns></returns>
+        public EndPoint GetEndPointAddress()
+        {
+            return CancelToken.IsCancellationRequested
+                ? null
+                : new IPEndPoint(IPAddress.Parse(Config.ServerBindAddress), Client.Port);
         }
 
         #endregion
@@ -53,7 +204,7 @@ namespace Mirror.ENet
         /// <summary>
         ///     Process all incoming messages and queue them up for mirror.
         /// </summary>
-        protected override async UniTaskVoid ProcessMessages()
+        private async UniTaskVoid ProcessMessages()
         {
             // Only process messages if the client is valid.
             while (!CancelToken.IsCancellationRequested)
@@ -159,6 +310,7 @@ namespace Mirror.ENet
                             networkEvent.Packet.Dispose();
                             break;
                     }
+                    await UniTask.Delay(10);
                 }
 
                 while (OutgoingQueuedData.TryDequeue(out IgnoranceOutgoingMessage message))
@@ -178,10 +330,9 @@ namespace Mirror.ENet
                         Debug.Log(
                             $"[DEBUGGING MODE] Ignorance: Outgoing packet on channel {message.ChannelId} FAIL, code {returnCode}");
 
-                    await UniTask.Delay(1);
                 }
 
-                await UniTask.Delay(1);
+                await UniTask.Delay(10);
             }
         }
     }

@@ -11,13 +11,13 @@ namespace Mirror.ENet
             Reliable = PacketFlags.Reliable,                                        // TCP Emulation.
             ReliableUnsequenced = PacketFlags.Reliable | PacketFlags.Unsequenced,   // TCP Emulation, but no sequencing.
             ReliableUnbundledInstant = PacketFlags.Reliable | PacketFlags.Instant,  // Experimental: Reliablity + Instant hybrid packet type.
-            Unreliable = PacketFlags.Unsequenced,                                   // Pure UDP + ENet's Protocol.
+            UnbundledInstant = PacketFlags.Instant,                                 // Instant packet, will not be bundled with others.
+            Unreliable = PacketFlags.Unsequenced,                                   // Pure UDP.
             UnreliableFragmented = PacketFlags.UnreliableFragmented,                // Pure UDP, but fragmented.
             UnreliableSequenced = PacketFlags.None,                                 // Pure UDP, but sequenced.
-            UnbundledInstant = PacketFlags.Instant,                                 // Instant packet, will not be bundled with others.
-            Unthrottled = PacketFlags.Unthrottled,                                  // ???
+            Unthrottled = PacketFlags.Unthrottled,                                // ???
 
-        }
+    }
 
         [Serializable]
 		public class PeerStatistics

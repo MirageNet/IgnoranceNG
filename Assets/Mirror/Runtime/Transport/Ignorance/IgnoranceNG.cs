@@ -195,7 +195,7 @@ namespace Mirror.ENet
 
             if (Config.DebugEnabled) Debug.Log($"[DEBUGGING MODE] Ignorance: Client has been started!");
 
-            return await new UniTask<IConnection>(new ENetClientConnection(peer, host, Config));
+            return await new UniTask<IConnection>(new ENetClientConnection(peer, host, Config, false));
         }
 
         /// <summary>
