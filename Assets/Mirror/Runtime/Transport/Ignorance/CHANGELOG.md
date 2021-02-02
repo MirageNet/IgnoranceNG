@@ -1,3 +1,10 @@
+## [0.0.10](https://github.com/MirrorNG/IgnoranceNG/compare/v0.0.9...v0.0.10) (2021-02-02)
+
+
+### Bug Fixes
+
+* low fps was due to not pausing long enough in the unitask dely. ([99efdba](https://github.com/MirrorNG/IgnoranceNG/commit/99efdbab2675997713f5c6c806fe68564bde6c18))
+
 ## [0.0.9](https://github.com/MirrorNG/IgnoranceNG/compare/v0.0.8...v0.0.9) (2020-11-26)
 
 
