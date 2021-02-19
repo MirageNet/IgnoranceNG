@@ -1,14 +1,12 @@
 Mirage version of this transport. All rights and original credit is due to Coburn
 
-![Mirror Logo](https://i.imgur.com/we6li1x.png)
-
-[![Documentation](https://img.shields.io/badge/documentation-brightgreen.svg)](https://mirrorng.github.io/MirrorNG/)
+[![Documentation](https://img.shields.io/badge/documentation-brightgreen.svg)](https://miragenet.github.io/Mirage/)
 [![Forum](https://img.shields.io/badge/forum-brightgreen.svg)](https://forum.unity.com/threads/mirror-networking-for-unity-aka-hlapi-community-edition.425437/)
-[![Discord](https://img.shields.io/discord/343440455738064897.svg)](https://discordapp.com/invite/N9QVxbM)
-[![release](https://img.shields.io/github/release/MirrorNG/IgnoranceNG.svg)](https://github.com/MirrorNG/IgnoranceNG/releases/latest)
-[![openupm](https://img.shields.io/npm/v/com.mirrorng.enet?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.mirrorng.enet/)
-[![GitHub issues](https://img.shields.io/github/issues/MirrorNG/IgnoranceNG.svg)](https://github.com/MirrorNG/IgnoranceNG/issues)
-![GitHub last commit](https://img.shields.io/github/last-commit/MirrorNG/IgnoranceNG.svg) ![MIT Licensed](https://img.shields.io/badge/license-MIT-green.svg)
+[![Discord](https://img.shields.io/discord/343440455738064897.svg)]()
+[![release](https://img.shields.io/github/release/MirageNet/IgnoranceNG.svg)](https://github.com/MirageNet/IgnoranceNG/releases/latest)
+[![openupm](https://img.shields.io/npm/v/com.miragenet.enet?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.miragenet.enet/)
+[![GitHub issues](https://img.shields.io/github/issues/MirageNet/IgnoranceNG.svg)](https://github.com/MirageNet/IgnoranceNG/issues)
+![GitHub last commit](https://img.shields.io/github/last-commit/MirageNet/IgnoranceNG.svg) ![MIT Licensed](https://img.shields.io/badge/license-MIT-green.svg)
 =============
 [![Ko-Fi](https://img.shields.io/badge/Donate-Ko--Fi-red)](https://ko-fi.com/coburn) 
 [![PayPal](https://img.shields.io/badge/Donate-PayPal-blue)](https://paypal.me/coburn64) 
@@ -17,7 +15,7 @@ _If you feel so inclined, I'd appreciate [**a coffee** to keep me
 caffeinated](https://ko-fi.com/coburn) if you use this transport._
 
 Welcome to Ignorance, a Enet-powered Transport system for the [Mirror
-Networking](https://github.com/MirrorNG/MirrorNG) project. By utilizing the tried
+Networking](https://github.com/MirageNet/Mirage) project. By utilizing the tried
 and true Enet native C library, Ignorance provides reliable UDP communications 
 for your game projects where the default Telepathy TCP transport would choke.
 
@@ -113,12 +111,6 @@ Dependencies
     
 -   [Mirage Networking](https://github.com/MirageNet/Mirage)
 
-Mirror Compatibility
---------------------
-
-Please use the Mirror Asset Store releases. The master branch of Mirror can also
-be used but please beware that it's bleeding edge.
-
 ## Installation
 The preferred installation method is Unity Package manager.
 
@@ -129,7 +121,7 @@ If you are using unity 2019.3 or later:
 3) Click on Windows -> Package Manager
 4) Click on the plus sign on the left and click on "Add package from git URL..."
 5) enter https://github.com/MirageNet/IgnoranceNG.git?path=/Assets/Mirage/Runtime/Transport/Ignorance
-6) Unity will download and install MirrorNG Ignorance
+6) Unity will download and install Mirage Ignorance
 
 How to use
 ----------
@@ -171,17 +163,13 @@ having to deal with this design issue.
 ### I have a bug!
 
 [Check the current open bug reports and/or report a new one
-here](https://github.com/dragonslaya84/IgnoranceNG/issues). I strongly also recommend you
-be present in the [Mirror Discord](https://discord.gg/N9QVxbM) so I can ask for further info and/or you can test
+here](https://github.com/MirageNet/IgnoranceNG/issues). I strongly also recommend you
+be present in the [Mirage Discord]() so I can ask for further info and/or you can test
 fixes for your bug reports. Trolls are not welcome.
 
 Bugs that do not have enough details will be closed with \#wontfix. Details like
 your OS, Unity Editor version, any Ignorance errors, etc is essential for a good
 bug report.
-
-I have questions, I want answers.
----------------------------------
-[Here's a quick primer.](https://vis2k.github.io/Mirror/Transports/Ignorance)
 
 It might be slightly out of date, but it covers the basics of Ignorance.
 
