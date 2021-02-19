@@ -1,3 +1,10 @@
+## [0.0.12](https://github.com/MirageNet/IgnoranceNG/compare/v0.0.11...v0.0.12) (2021-02-19)
+
+
+### Bug Fixes
+
+* transport namespace changes. ([18de330](https://github.com/MirageNet/IgnoranceNG/commit/18de330220f6b9511b43afad9564423a3580f2b1))
+
 ## [0.0.11](https://github.com/MirageNet/IgnoranceNG/compare/v0.0.10...v0.0.11) (2021-02-19)
 
 
