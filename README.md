@@ -1,4 +1,4 @@
-MirrorNG version of this transport. All rights and original credit is due to Coburn
+Mirage version of this transport. All rights and original credit is due to Coburn
 
 ![Mirror Logo](https://i.imgur.com/we6li1x.png)
 
@@ -111,7 +111,7 @@ Dependencies
 -   [ENet-CSharp](https://github.com/SoftwareGuy/ENet-CSharp) (custom fork, NOT
     compatible with upstream)
     
--   [Mirror Networking](https://github.com/MirrorNG/MirrorNG)
+-   [Mirage Networking](https://github.com/MirageNet/Mirage)
 
 Mirror Compatibility
 --------------------
@@ -125,10 +125,10 @@ The preferred installation method is Unity Package manager.
 If you are using unity 2019.3 or later: 
 
 1) Open your project in unity
-2) Install [MirrorNG](https://github.com/MirrorNG/MirrorNG)
+2) Install [Mirage](https://github.com/MirageNet/Mirage)
 3) Click on Windows -> Package Manager
 4) Click on the plus sign on the left and click on "Add package from git URL..."
-5) enter https://github.com/MirrorNG/IgnoranceNG.git?path=/Assets/Mirror/Runtime/Transport/Ignorance
+5) enter https://github.com/MirageNet/IgnoranceNG.git?path=/Assets/Mirage/Runtime/Transport/Ignorance
 6) Unity will download and install MirrorNG Ignorance
 
 How to use
