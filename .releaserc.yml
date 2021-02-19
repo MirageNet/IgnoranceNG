@@ -4,14 +4,14 @@
         "@semantic-release/release-notes-generator", 
         "@semantic-release/commit-analyzer",
         ["@semantic-release/changelog", {
-            "changelogFile": "Assets/Mirror/Runtime/Transport/Ignorance/CHANGELOG.md",
+            "changelogFile": "Assets/Mirage/Runtime/Transport/Ignorance/CHANGELOG.md",
         }],
         ["@semantic-release/npm", {
             "npmPublish": false,
-            "pkgRoot": "Assets/Mirror/Runtime/Transport/Ignorance"
+            "pkgRoot": "Assets/Mirage/Runtime/Transport/Ignorance"
         }],
         ["@semantic-release/git", {
-            "assets": ["Assets/Mirror/Runtime/Transport/Ignorance/package.json", "Assets/Mirror/Runtime/Transport/Ignorance/CHANGELOG.md"],
+            "assets": ["Assets/Mirage/Runtime/Transport/Ignorance/package.json", "Assets/Mirage/Runtime/Transport/Ignorance/CHANGELOG.md"],
             "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
         }],
     ]

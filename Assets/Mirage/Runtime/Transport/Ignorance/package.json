@@ -1,0 +1,16 @@
+{
+    "name": "com.miragenet.enet",
+    "displayName": "Mirage Ignorance",
+    "version": "0.0.10",
+    "unity": "2020.1",
+    "description": "UDP transport for Mirage",
+    "author": "Mirage",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/MirageNet/IgnoranceNG.git"
+    },
+    "dependencies": {
+        "com.cysharp.unitask": "2.0.36",
+        "com.miragenet.mirage": "54.1.1"
+    }
+}
