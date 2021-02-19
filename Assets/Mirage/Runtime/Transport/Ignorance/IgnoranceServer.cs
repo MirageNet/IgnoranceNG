@@ -11,7 +11,7 @@ using EventType = ENet.EventType;
 
 #endregion
 
-namespace Mirror.ENet
+namespace Mirage.ENet
 {
     public class IgnoranceServer
     {

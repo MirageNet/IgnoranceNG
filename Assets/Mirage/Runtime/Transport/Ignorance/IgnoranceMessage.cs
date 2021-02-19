@@ -4,7 +4,7 @@ using ENet;
 
 #endregion
 
-namespace Mirror.ENet
+namespace Mirage.ENet
 {
     public struct IgnoranceIncomingMessage
     {

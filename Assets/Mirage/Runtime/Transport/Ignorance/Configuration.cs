@@ -6,7 +6,7 @@ using UnityEngine.Serialization;
 
 #endregion
 
-namespace Mirror.ENet
+namespace Mirage.ENet
 {
     /// <summary>
     ///     Configuration file to be serialized into unity inspector.

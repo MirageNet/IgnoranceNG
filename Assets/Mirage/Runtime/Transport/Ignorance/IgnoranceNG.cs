@@ -8,7 +8,7 @@ using UnityEngine;
 
 #endregion
 
-namespace Mirror.ENet
+namespace Mirage.ENet
 {
     public class IgnoranceNG : Transport
     {
