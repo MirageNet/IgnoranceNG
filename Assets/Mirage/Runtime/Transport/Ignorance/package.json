@@ -1,7 +1,7 @@
 {
     "name": "com.miragenet.enet",
     "displayName": "Mirage Ignorance",
-    "version": "0.0.10",
+    "version": "0.0.11",
     "unity": "2020.1",
     "description": "UDP transport for Mirage",
     "author": "Mirage",

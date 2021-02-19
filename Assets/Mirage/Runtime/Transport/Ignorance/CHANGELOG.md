@@ -1,3 +1,10 @@
+## [0.0.11](https://github.com/MirageNet/IgnoranceNG/compare/v0.0.10...v0.0.11) (2021-02-19)
+
+
+### Bug Fixes
+
+* folder names ([a2e3aed](https://github.com/MirageNet/IgnoranceNG/commit/a2e3aede29f16668d788e936044113d0b5028f04))
+
 ## [0.0.10](https://github.com/MirrorNG/IgnoranceNG/compare/v0.0.9...v0.0.10) (2021-02-02)
 
 
