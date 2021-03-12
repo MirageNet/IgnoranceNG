@@ -69,23 +69,23 @@ namespace Mirage.ENet
         /// <param name="data">The data to be sent.</param>
         /// <param name="channel">The channel to send it on.</param>
         /// <returns></returns>
-        public UniTask SendAsync(ArraySegment<byte> data, int channel)
+        public void Send(ArraySegment<byte> data, int channel)
         {
             if (CancelToken.IsCancellationRequested)
             {
-                return UniTask.CompletedTask;
+                return;
             }
 
             if (!Client.IsSet || Client.State == PeerState.Uninitialized)
             {
-                return UniTask.CompletedTask;
+                return;
             }
 
             if (channel > Config.Channels.Length)
             {
                 Debug.LogWarning(
                     $"Ignorance: Attempted to send data on channel {channel} when we only have {Config.Channels.Length} channels defined");
-                return UniTask.CompletedTask;
+                return;
             }
 
             Packet payload = default;
@@ -103,8 +103,6 @@ namespace Mirage.ENet
                 Debug.Log(
                     $"Ignorance: Queuing up outgoing data packet: {BitConverter.ToString(data.Array)}");
             }
-
-            return UniTask.CompletedTask;
         }
 
         /// <summary>
