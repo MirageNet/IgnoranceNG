@@ -1,3 +1,10 @@
+## [0.0.13](https://github.com/MirageNet/IgnoranceNG/compare/v0.0.12...v0.0.13) (2021-03-12)
+
+
+### Bug Fixes
+
+* readme ([b74471b](https://github.com/MirageNet/IgnoranceNG/commit/b74471b59c71ab57ea518b24555841793d677980))
+
 ## [0.0.12](https://github.com/MirageNet/IgnoranceNG/compare/v0.0.11...v0.0.12) (2021-02-19)
 
 
